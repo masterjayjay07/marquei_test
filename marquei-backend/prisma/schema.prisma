@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  professional Professional?
+  client     Client[]
+
+  @@map("users")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  duration    Int      // in minutes
+  price       Float
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  appointments Appointment[]
+  professionals ProfessionalService[]
+
+  @@map("services")
+}
+
+model Professional {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  workSchedule  Json     // WorkSchedule object
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+  professionalServices ProfessionalService[]
+
+  @@map("professionals")
+}
+
+model ProfessionalService {
+  id            String @id @default(cuid())
+  professionalId String
+  serviceId     String
+  professional  Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  service       Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([professionalId, serviceId])
+  @@map("professional_services")
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appointments Appointment[]
+
+  @@map("clients")
+}
+
+model Appointment {
+  id            String           @id @default(cuid())
+  clientId      String
+  professionalId String
+  serviceId     String
+  date          DateTime
+  startTime     String           // format: "HH:mm"
+  endTime       String           // format: "HH:mm"
+  status        AppointmentStatus @default(SCHEDULED)
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  client        Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  professional  Professional     @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  service       Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("appointments")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@map("notifications")
+}
+
+model ImportJob {
+  id          String            @id @default(cuid())
+  fileName    String
+  status      ImportJobStatus   @default(PENDING)
+  totalRows   Int?
+  processedRows Int?
+  errors      Json?             // Array of ImportError objects
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("import_jobs")
+}
+
+enum UserRole {
+  MANAGER
+  PROFESSIONAL
+  CLIENT
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+}
+
+enum NotificationType {
+  APPOINTMENT_REMINDER
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_CONFIRMED
+  SYSTEM_NOTIFICATION
+}
+
+enum ImportJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
