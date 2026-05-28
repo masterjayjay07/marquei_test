@@ -43,9 +43,39 @@ export default function ClientsPage() {
   };
 
   useEffect(() => {
-    setTimeout(() => {
-      loadClients();
-    }, 0);
+    let isMounted = true;
+    let hasLoaded = false;
+
+    const fetchClients = async () => {
+      if (hasLoaded) return;
+      hasLoaded = true;
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/clients`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+        if (isMounted && data.success) {
+          setClients(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error loading clients:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchClients();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

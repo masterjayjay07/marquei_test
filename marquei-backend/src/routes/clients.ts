@@ -1,12 +1,14 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { ApiResponse } from '../types';
 import { authenticateToken, AuthRequest, requireRole } from '../middleware/auth';
+import { prisma } from '../lib/prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
-router.get('/', authenticateToken, requireRole(['manager']), async (req: AuthRequest, res) => {
+console.log('Clients routes loaded');
+
+router.get('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
+  console.log('GET /clients - Route hit');
   try {
     const clients = await prisma.client.findMany({
       orderBy: { createdAt: 'desc' }
@@ -52,7 +54,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/', authenticateToken, requireRole(['manager']), async (req: AuthRequest, res) => {
+router.post('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
   try {
     const { name, email, phone } = req.body;
 
@@ -85,7 +87,7 @@ router.post('/', authenticateToken, requireRole(['manager']), async (req: AuthRe
   }
 });
 
-router.put('/:id', authenticateToken, requireRole(['manager']), async (req: AuthRequest, res) => {
+router.put('/:id', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
     const { name, email, phone } = req.body;
@@ -113,7 +115,7 @@ router.put('/:id', authenticateToken, requireRole(['manager']), async (req: Auth
   }
 });
 
-router.delete('/:id', authenticateToken, requireRole(['manager']), async (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
 

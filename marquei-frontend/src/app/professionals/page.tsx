@@ -74,9 +74,40 @@ export default function ProfessionalsPage() {
   };
 
   useEffect(() => {
-    setTimeout(() => {
-      loadProfessionals();
-    }, 0);
+    let isMounted = true;
+    let hasLoaded = false;
+    
+    const fetchProfessionals = async () => {
+      if (hasLoaded) return;
+      hasLoaded = true;
+
+      try {
+        const response = await fetch('http://localhost:3001/api/professionals', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch');
+        
+        const data = await response.json();
+        if (isMounted) {
+          setProfessionals(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error loading professionals:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchProfessionals();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (loading) {

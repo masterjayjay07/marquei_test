@@ -25,21 +25,33 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    let hasLoaded = false;
+    
     const loadMetrics = async () => {
+      if (hasLoaded) return;
+      hasLoaded = true;
+
       try {
         const response = await dashboardApi.getMetrics();
-        setMetrics(response.data);
+        if (isMounted) {
+          setMetrics(response.data);
+        }
       } catch (error) {
         console.error('Error loading dashboard metrics:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    if (user) {
-      loadMetrics();
-    }
-  }, [user]);
+    loadMetrics();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -78,7 +90,7 @@ export default function DashboardPage() {
             </div>
             
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Taxa de No-Show</h3>
+              <h3 className="text-sm font-medium text-gray-500">Taxa de não comparecimento</h3>
               <p className="text-2xl font-bold text-red-600">{metrics.noShowRate}%</p>
             </div>
             
@@ -135,7 +147,7 @@ export default function DashboardPage() {
                   <span className="font-medium text-green-600">{metrics.appointmentsByStatus.completed || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">No-Show</span>
+                  <span className="text-gray-600">Não compareceu</span>
                   <span className="font-medium text-red-600">{metrics.appointmentsByStatus.no_show || 0}</span>
                 </div>
                 <div className="flex justify-between">

@@ -102,7 +102,7 @@ export default function MyAppointmentsPage() {
                             }`}>
                               {appointment.status === 'scheduled' ? 'Agendado' :
                                appointment.status === 'completed' ? 'Realizado' :
-                               appointment.status === 'no_show' ? 'No-Show' :
+                               appointment.status === 'no_show' ? 'Não compareceu' :
                                'Cancelado'}
                             </span>
                           </div>

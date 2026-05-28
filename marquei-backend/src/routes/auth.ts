@@ -49,9 +49,11 @@ router.post('/login', async (req, res) => {
     }
 
     console.log('Generating token...');
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    console.log('Using JWT_SECRET:', jwtSecret.substring(0, 10) + '...');
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'fallback-secret'
+      jwtSecret
       // SEM EXPIRAÇÃO - token permanente
     );
 

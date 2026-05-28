@@ -21,7 +21,10 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+    console.log('Using JWT_SECRET for verification:', jwtSecret.substring(0, 10) + '...');
+    const decoded = jwt.verify(token, jwtSecret) as any;
     console.log('Token decoded:', { userId: decoded.userId, role: decoded.role });
     
     const user = await prisma.user.findUnique({

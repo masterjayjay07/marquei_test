@@ -113,7 +113,7 @@ export default function SchedulePage() {
                             }`}>
                               {appointment.status === 'scheduled' ? 'Agendado' :
                                appointment.status === 'completed' ? 'Realizado' :
-                               appointment.status === 'no_show' ? 'No-Show' :
+                               appointment.status === 'no_show' ? 'Não compareceu' :
                                'Cancelado'}
                             </span>
                           </div>
@@ -139,7 +139,7 @@ export default function SchedulePage() {
                           onClick={() => updateAppointmentStatus(appointment.id, 'no_show')}
                           className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
                         >
-                          No-Show
+                          Não compareceu
                         </button>
                       </div>
                     )}

@@ -26,8 +26,10 @@ interface Appointment {
   };
   professional?: {
     id: string;
-    name: string;
-    email: string;
+    user?: {
+      name: string;
+      email: string;
+    };
   };
 }
 
@@ -38,34 +40,36 @@ export default function AppointmentsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let isMounted = true;
+    let hasLoaded = false;
+    
     const loadAppointments = async () => {
-      try {
-        let response;
-        
-        if (user?.role === 'manager') {
-          // Gestor vê todos os agendamentos
-          response = await appointmentsApi.getAll();
-        } else if (user?.role === 'professional') {
-          // Profissional vê todos os agendamentos (filtrar no frontend)
-          response = await appointmentsApi.getAll();
-        } else {
-          // Cliente não deveria acessar esta página
-          setError('Acesso não autorizado');
-          return;
-        }
+      if (hasLoaded) return;
+      hasLoaded = true;
 
-        setAppointments(response.data || []);
+      try {
+        const response = await appointmentsApi.getAll();
+
+        if (isMounted) {
+          setAppointments(response.data || []);
+        }
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Erro ao carregar agendamentos');
+        if (isMounted) {
+          setError(error instanceof Error ? error.message : 'Erro ao carregar agendamentos');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    if (user) {
-      loadAppointments();
-    }
-  }, [user]);
+    loadAppointments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const updateAppointmentStatus = async (appointmentId: string, status: 'scheduled' | 'completed' | 'no_show' | 'cancelled') => {
     try {
@@ -83,14 +87,14 @@ export default function AppointmentsPage() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled':
+    switch (status.toUpperCase()) {
+      case 'SCHEDULED':
         return 'bg-blue-100 text-blue-800';
-      case 'completed':
+      case 'COMPLETED':
         return 'bg-green-100 text-green-800';
-      case 'no_show':
+      case 'NO_SHOW':
         return 'bg-red-100 text-red-800';
-      case 'cancelled':
+      case 'CANCELLED':
         return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -98,14 +102,14 @@ export default function AppointmentsPage() {
   };
 
   const getStatusText = (status: string) => {
-    switch (status) {
-      case 'scheduled':
+    switch (status.toUpperCase()) {
+      case 'SCHEDULED':
         return 'Agendado';
-      case 'completed':
+      case 'COMPLETED':
         return 'Concluído';
-      case 'no_show':
+      case 'NO_SHOW':
         return 'Não compareceu';
-      case 'cancelled':
+      case 'CANCELLED':
         return 'Cancelado';
       default:
         return status;
@@ -138,11 +142,11 @@ export default function AppointmentsPage() {
     <Layout>
       <div className="p-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          {user?.role === 'manager' ? 'Todos os Agendamentos' : 'Meus Agendamentos'}
+          {user?.role === 'MANAGER' ? 'Todos os Agendamentos' : 'Meus Agendamentos'}
         </h1>
 
         <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
+          <div>
             {appointments.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-gray-500">
@@ -158,7 +162,7 @@ export default function AppointmentsPage() {
                         Data/Hora
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {user?.role === 'manager' ? 'Profissional' : 'Cliente'}
+                        {user?.role === 'MANAGER' ? 'Profissional' : 'Cliente'}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Serviço
@@ -186,10 +190,10 @@ export default function AppointmentsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {user?.role === 'manager' ? (
+                          {user?.role === 'MANAGER' ? (
                             <div>
-                              <div className="font-medium">{appointment.professional?.name}</div>
-                              <div className="text-gray-500">{appointment.professional?.email}</div>
+                              <div className="font-medium">{appointment.professional?.user?.name || 'N/A'}</div>
+                              <div className="text-gray-500">{appointment.professional?.user?.email || 'N/A'}</div>
                             </div>
                           ) : (
                             <div>
@@ -212,9 +216,9 @@ export default function AppointmentsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {appointment.status === 'scheduled' && (
+                          {appointment.status.toUpperCase() === 'SCHEDULED' && (
                             <div className="flex space-x-2">
-                              {user?.role === 'professional' && (
+                              {user?.role === 'PROFESSIONAL' && (
                                 <>
                                   <button
                                     onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
@@ -230,7 +234,7 @@ export default function AppointmentsPage() {
                                   </button>
                                 </>
                               )}
-                              {(user?.role === 'manager' || user?.role === 'professional') && (
+                              {(user?.role === 'MANAGER' || user?.role === 'PROFESSIONAL') && (
                                 <button
                                   onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
                                   className="text-gray-600 hover:text-gray-900"

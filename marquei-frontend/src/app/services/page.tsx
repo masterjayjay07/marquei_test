@@ -36,7 +36,32 @@ export default function ServicesPage() {
   };
 
   useEffect(() => {
-    loadServices();
+    let isMounted = true;
+    let hasLoaded = false;
+    
+    const fetchServices = async () => {
+      if (hasLoaded) return;
+      hasLoaded = true;
+
+      try {
+        const response = await servicesApi.getAll();
+        if (isMounted) {
+          setServices(response.data || []);
+        }
+      } catch (error) {
+        console.error('Error loading services:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchServices();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

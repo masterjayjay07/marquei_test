@@ -1,16 +1,17 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import servicesRoutes from './routes/services';
 import professionalsRoutes from './routes/professionals';
 import clientsRoutes from './routes/clients';
 import appointmentsRoutes from './routes/appointments';
 import dashboardRoutes from './routes/dashboard';
-
-dotenv.config();
+import importRoutes from './routes/import';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,6 +38,7 @@ app.use('/api/professionals', professionalsRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/import', importRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

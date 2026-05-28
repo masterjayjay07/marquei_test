@@ -1,10 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { ApiResponse } from '../types';
 import { authenticateToken, AuthRequest, requireRole } from '../middleware/auth';
+import { prisma } from '../lib/prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 router.get('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
@@ -176,7 +175,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
-router.delete('/:id', authenticateToken, requireRole(['manager']), async (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
 
