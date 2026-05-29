@@ -10,7 +10,7 @@ interface Appointment {
   date: string;
   startTime: string;
   endTime?: string;
-  status: 'scheduled' | 'completed' | 'no_show' | 'cancelled';
+  status: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED';
   notes?: string;
   client?: {
     id: string;
@@ -71,7 +71,7 @@ export default function AppointmentsPage() {
     };
   }, []);
 
-  const updateAppointmentStatus = async (appointmentId: string, status: 'scheduled' | 'completed' | 'no_show' | 'cancelled') => {
+  const updateAppointmentStatus = async (appointmentId: string, status: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED') => {
     try {
       await appointmentsApi.update(appointmentId, { status });
       
@@ -181,7 +181,7 @@ export default function AppointmentsPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div>
                             <div className="font-medium">
-                              {new Date(appointment.date).toLocaleDateString('pt-BR')}
+                              {new Date(appointment.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                             </div>
                             <div className="text-gray-500">
                               {appointment.startTime}
@@ -221,13 +221,13 @@ export default function AppointmentsPage() {
                               {user?.role === 'PROFESSIONAL' && (
                                 <>
                                   <button
-                                    onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
+                                    onClick={() => updateAppointmentStatus(appointment.id, 'COMPLETED')}
                                     className="text-green-600 hover:text-green-900"
                                   >
                                     Concluir
                                   </button>
                                   <button
-                                    onClick={() => updateAppointmentStatus(appointment.id, 'no_show')}
+                                    onClick={() => updateAppointmentStatus(appointment.id, 'NO_SHOW')}
                                     className="text-red-600 hover:text-red-900"
                                   >
                                     Não Compareceu
@@ -236,7 +236,7 @@ export default function AppointmentsPage() {
                               )}
                               {(user?.role === 'MANAGER' || user?.role === 'PROFESSIONAL') && (
                                 <button
-                                  onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
+                                  onClick={() => updateAppointmentStatus(appointment.id, 'CANCELLED')}
                                   className="text-gray-600 hover:text-gray-900"
                                 >
                                   Cancelar

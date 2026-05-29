@@ -19,7 +19,8 @@ export default function ClientsPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: ''
+    phone: '',
+    password: ''
   });
 
   const loadClients = async () => {
@@ -100,7 +101,7 @@ export default function ClientsPage() {
       if (data.success) {
         setShowModal(false);
         setEditingClient(null);
-        setFormData({ name: '', email: '', phone: '' });
+        setFormData({ name: '', email: '', phone: '', password: '' });
         loadClients();
       }
     } catch (error) {
@@ -114,7 +115,8 @@ export default function ClientsPage() {
     setFormData({
       name: client.name,
       email: client.email,
-      phone: client.phone || ''
+      phone: client.phone || '',
+      password: ''
     });
     setShowModal(true);
   };
@@ -161,7 +163,7 @@ export default function ClientsPage() {
           <button
             onClick={() => {
               setEditingClient(null);
-              setFormData({ name: '', email: '', phone: '' });
+              setFormData({ name: '', email: '', phone: '', password: '' });
               setShowModal(true);
             }}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
@@ -270,6 +272,20 @@ export default function ClientsPage() {
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                   />
                 </div>
+                {!editingClient && (
+                  <div className="mb-4">
+                    <label className="block text-gray-700 text-sm font-bold mb-2">
+                      Senha (opcional - para permitir login do cliente)
+                    </label>
+                    <input
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                      placeholder="Deixe em branco para não criar usuário"
+                    />
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <button
                     type="submit"
@@ -282,7 +298,7 @@ export default function ClientsPage() {
                     onClick={() => {
                       setShowModal(false);
                       setEditingClient(null);
-                      setFormData({ name: '', email: '', phone: '' });
+                      setFormData({ name: '', email: '', phone: '', password: '' });
                     }}
                     className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                   >

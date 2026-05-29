@@ -1,4 +1,5 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import { ApiResponse } from '../types';
 import { authenticateToken, AuthRequest, requireRole } from '../middleware/auth';
 import { prisma } from '../lib/prisma';
@@ -16,14 +17,25 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
             name: true,
             email: true
           }
+        },
+        professionalServices: {
+          select: {
+            serviceId: true
+          }
         }
       }
     });
 
+    // Transformar para incluir array de serviceIds
+    const professionalsWithServices = professionals.map(prof => ({
+      ...prof,
+      services: prof.professionalServices.map(ps => ps.serviceId)
+    }));
+
     console.log('Professionals found:', professionals.length);
     res.json({
       success: true,
-      data: professionals
+      data: professionalsWithServices
     });
   } catch (error) {
     console.error('Get professionals error:', error);
@@ -46,6 +58,11 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
             name: true,
             email: true
           }
+        },
+        professionalServices: {
+          select: {
+            serviceId: true
+          }
         }
       }
     });
@@ -57,9 +74,14 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
       });
     }
 
+    const professionalWithServices = {
+      ...professional,
+      services: professional.professionalServices.map(ps => ps.serviceId)
+    };
+
     res.json({
       success: true,
-      data: professional
+      data: professionalWithServices
     });
   } catch (error) {
     console.error('Get professional error:', error);
@@ -81,12 +103,13 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRe
       });
     }
 
-    // Criar usuário primeiro
+    // Criar usuário primeiro com senha hash
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
         name,
         email,
-        password, // Em produção, criptografar a senha!
+        password: hashedPassword,
         role: 'PROFESSIONAL'
       }
     });

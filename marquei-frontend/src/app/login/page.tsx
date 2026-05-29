@@ -58,6 +58,12 @@ export default function LoginPage() {
           <p className="mt-2 text-center text-sm text-gray-600">
             Sistema de Agendamento de Beleza
           </p>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Não tem conta?{' '}
+            <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+              Cadastre-se aqui
+            </a>
+          </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">

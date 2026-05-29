@@ -88,65 +88,33 @@ Authorization: Bearer <seu_token_jwt>
 - **Professional**: Acesso limitado aos próprios agendamentos
 - **Client**: Acesso limitado aos próprios agendamentos e criação de novos
 
-## 🛠️ Como Executar
+## 🛠️ Como Executar Localmente
 
 ### Pré-requisitos
 - Node.js 18+ instalado
 - npm ou yarn
 
-### Instalação
+### Instalação e Execução
 
-1. Clone o repositório:
-```bash
-git clone <repository-url>
-cd marquei-backend
-```
-
-2. Instale as dependências:
+1. Instale as dependências:
 ```bash
 npm install
 ```
 
-3. Configure as variáveis de ambiente:
+2. O arquivo `.env` já está configurado com a DATABASE_URL. Se precisar recriar o banco:
 ```bash
-cp .env.example .env
-# Edite o arquivo .env com suas configurações
-```
-
-4. Configure o PostgreSQL (escolha uma opção):
-
-**Opção A: Supabase (Recomendado - Grátis, sem instalação)**
-```bash
-# 1. Crie projeto em https://supabase.com
-# 2. Copie a DATABASE_URL do painel
-# 3. Cole no arquivo .env
-# 4. Execute:
 npm run prisma:push
 npm run prisma:seed
 ```
 
-**Opção B: Docker**
-```bash
-docker-compose up -d
-npm run prisma:push
-npm run prisma:seed
-```
-
-**Opção C: PostgreSQL Local**
-```bash
-# Instale PostgreSQL e crie o banco
-createdb marquei_db
-# Configure DATABASE_URL no .env
-npm run prisma:push
-npm run prisma:seed
-```
-
-5. Execute em modo desenvolvimento:
+3. Execute o servidor em modo desenvolvimento:
 ```bash
 npm run dev
 ```
 
-5. Ou build e execute em produção:
+O backend estará rodando em `http://localhost:3001`
+
+### Build para Produção
 ```bash
 npm run build
 npm start

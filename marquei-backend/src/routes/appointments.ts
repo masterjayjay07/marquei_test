@@ -7,7 +7,34 @@ const router = express.Router();
 
 router.get('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
+    let whereClause = {};
+
+    if (req.user!.role === 'CLIENT') {
+      const client = await prisma.client.findUnique({
+        where: { userId: req.user!.id }
+      });
+      
+      if (!client) {
+        return res.status(404).json({
+          success: false,
+          error: 'Cliente não encontrado'
+        });
+      }
+      
+      whereClause = { clientId: client.id };
+    }
+    else if (req.user!.role === 'PROFESSIONAL') {
+      const professional = await prisma.professional.findUnique({
+        where: { userId: req.user!.id }
+      });
+      
+      if (professional) {
+        whereClause = { professionalId: professional.id };
+      }
+    }
+
     const appointments = await prisma.appointment.findMany({
+      where: whereClause,
       include: {
         client: true,
         professional: {
@@ -83,11 +110,26 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { clientId, professionalId, serviceId, date, startTime, endTime, notes } = req.body;
 
-    if (!clientId || !professionalId || !serviceId || !date || !startTime || !endTime) {
+    if (!clientId || !professionalId || !serviceId || !date || !startTime) {
       return res.status(400).json({
         success: false,
         error: 'Todos os campos obrigatórios devem ser preenchidos'
       });
+    }
+
+    let calculatedEndTime = endTime;
+    if (!calculatedEndTime) {
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId }
+      });
+
+      if (service) {
+        const [hours, minutes] = startTime.split(':').map(Number);
+        const startDate = new Date();
+        startDate.setHours(hours, minutes, 0, 0);
+        const endDate = new Date(startDate.getTime() + service.duration * 60000);
+        calculatedEndTime = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+      }
     }
 
     const newAppointment = await prisma.appointment.create({
@@ -95,9 +137,9 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         clientId,
         professionalId,
         serviceId,
-        date: new Date(date),
+        date: new Date(date + 'T00:00:00.000Z'),
         startTime,
-        endTime,
+        endTime: calculatedEndTime,
         notes: notes || null,
         status: 'SCHEDULED'
       },
@@ -139,7 +181,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
     const updatedAppointment = await prisma.appointment.update({
       where: { id },
       data: {
-        ...(date && { date: new Date(date) }),
+        ...(date && { date: new Date(date + 'T00:00:00.000Z') }),
         ...(startTime && { startTime }),
         ...(endTime && { endTime }),
         ...(status && { status }),

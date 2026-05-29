@@ -12,6 +12,7 @@ import clientsRoutes from './routes/clients';
 import appointmentsRoutes from './routes/appointments';
 import dashboardRoutes from './routes/dashboard';
 import importRoutes from './routes/import';
+import seedRoutes from './routes/seed';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,6 +40,7 @@ app.use('/api/clients', clientsRoutes);
 app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/import', importRoutes);
+app.use('/api/seed', seedRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

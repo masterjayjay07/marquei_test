@@ -29,35 +29,32 @@ Frontend do sistema Marquei, uma plataforma de agendamento online para salões d
 - Visualização de agendamentos passados e futuros
 - Recebimento de notificações automáticas
 
-## 🛠️ Como Executar
+## 🛠️ Como Executar Localmente
 
 ### Pré-requisitos
 - Node.js 18+ instalado
 - npm ou yarn
+- Backend rodando em `http://localhost:3001`
 
-### Instalação
+### Instalação e Execução
 
-1. Clone o repositório:
-```bash
-git clone <repository-url>
-cd marquei-frontend
-```
-
-2. Instale as dependências:
+1. Instale as dependências:
 ```bash
 npm install
-# ou
-yarn install
 ```
 
-3. Execute o servidor de desenvolvimento:
+2. Execute o servidor de desenvolvimento:
 ```bash
 npm run dev
-# ou
-yarn dev
 ```
 
-4. Abra [http://localhost:3000](http://localhost:3000) no navegador.
+3. Abra [http://localhost:3000](http://localhost:3000) no navegador.
+
+### Build para Produção
+```bash
+npm run build
+npm start
+```
 
 ## 🔐 Credenciais de Acesso
 
@@ -123,15 +120,14 @@ npm run lint
 
 ## 📝 Notas
 
-- Este é um frontend standalone com dados mockados
-- Para integração completa, é necessário desenvolver o backend
-- As notificações são simuladas localmente
-- A importação de arquivos processa dados mockados
+- Este frontend está integrado com o backend marquei-backend
+- Requer o backend rodando em `http://localhost:3001` para funcionar
+- As notificações são exibidas na interface
+- A importação de arquivos conecta com a API do backend
 
 ## 🚀 Próximos Passos
 
-- [ ] Desenvolver backend com Node.js e PostgreSQL
-- [ ] Implementar sistema de notificações reais
-- [ ] Conectar com APIs externas para envio de emails/SMS
-- [ ] Implementar sistema de pagamento
+- [ ] Implementar sistema de notificações reais (email/SMS)
+- [ ] Conectar com APIs externas para pagamentos
 - [ ] Adicionar funcionalidades de relatórios avançados
+- [ ] Implementar testes E2E

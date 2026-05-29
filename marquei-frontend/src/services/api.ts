@@ -105,7 +105,7 @@ interface AppointmentData {
 }
 
 export interface AppointmentUpdateData {
-  status?: 'scheduled' | 'completed' | 'no_show' | 'cancelled';
+  status?: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED';
   notes?: string;
 }
 

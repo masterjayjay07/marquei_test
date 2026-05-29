@@ -10,11 +10,13 @@ interface Appointment {
   date: string;
   startTime: string;
   endTime: string;
-  status: 'scheduled' | 'completed' | 'no_show' | 'cancelled';
+  status: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED';
   professional: {
     id: string;
-    name: string;
-    email: string;
+    user?: {
+      name: string;
+      email: string;
+    };
   };
   service: {
     id: string;
@@ -30,27 +32,39 @@ export default function MyAppointmentsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    let hasLoaded = false;
+
     const loadAppointments = async () => {
+      if (hasLoaded) return;
+      hasLoaded = true;
+
       try {
         const response = await appointmentsApi.getAll();
-        setAppointments(response.data || []);
+        if (isMounted) {
+          setAppointments(response.data || []);
+        }
       } catch (error) {
         console.error('Error loading appointments:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    if (user) {
-      loadAppointments();
-    }
-  }, [user]);
+    loadAppointments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const cancelAppointment = async (appointmentId: string) => {
     try {
-      await appointmentsApi.update(appointmentId, { status: 'cancelled' } as AppointmentUpdateData);
+      await appointmentsApi.update(appointmentId, { status: 'CANCELLED' } as AppointmentUpdateData);
       setAppointments(appointments.map(apt => 
-        apt.id === appointmentId ? { ...apt, status: 'cancelled' } : apt
+        apt.id === appointmentId ? { ...apt, status: 'CANCELLED' } : apt
       ));
     } catch (error) {
       console.error('Error cancelling appointment:', error);
@@ -85,7 +99,7 @@ export default function MyAppointmentsPage() {
                         <div className="flex-shrink-0">
                           <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
                             <span className="text-purple-600 font-medium">
-                              {appointment.professional.name.charAt(0).toUpperCase()}
+                              {appointment.professional?.user?.name?.charAt(0).toUpperCase() || 'P'}
                             </span>
                           </div>
                         </div>
@@ -95,22 +109,22 @@ export default function MyAppointmentsPage() {
                               {appointment.service.name}
                             </h3>
                             <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                              appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                              appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
-                              appointment.status === 'no_show' ? 'bg-red-100 text-red-800' :
+                              appointment.status === 'SCHEDULED' ? 'bg-blue-100 text-blue-800' :
+                              appointment.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                              appointment.status === 'NO_SHOW' ? 'bg-red-100 text-red-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
-                              {appointment.status === 'scheduled' ? 'Agendado' :
-                               appointment.status === 'completed' ? 'Realizado' :
-                               appointment.status === 'no_show' ? 'Não compareceu' :
+                              {appointment.status === 'SCHEDULED' ? 'Agendado' :
+                               appointment.status === 'COMPLETED' ? 'Realizado' :
+                               appointment.status === 'NO_SHOW' ? 'Não compareceu' :
                                'Cancelado'}
                             </span>
                           </div>
                           <div className="mt-1 text-sm text-gray-500">
-                            Profissional: {appointment.professional.name}
+                            Profissional: {appointment.professional?.user?.name || 'N/A'}
                           </div>
                           <div className="mt-1 text-sm text-gray-500">
-                            {new Date(appointment.date).toLocaleDateString('pt-BR')} • {appointment.startTime} - {appointment.endTime}
+                            {new Date(appointment.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} • {appointment.startTime} - {appointment.endTime}
                           </div>
                           <div className="mt-1 text-sm text-gray-500">
                             R$ {appointment.service.price.toFixed(2)}
@@ -119,7 +133,7 @@ export default function MyAppointmentsPage() {
                       </div>
                     </div>
                     
-                    {appointment.status === 'scheduled' && (
+                    {appointment.status === 'SCHEDULED' && (
                       <div className="ml-4">
                         <button
                           onClick={() => cancelAppointment(appointment.id)}

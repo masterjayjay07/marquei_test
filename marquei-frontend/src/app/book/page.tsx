@@ -15,15 +15,19 @@ interface Service {
 
 interface Professional {
   id: string;
-  name: string;
-  email: string;
-  services: string[];
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  services?: string[];
 }
 
 export default function BookPage() {
   const { user } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [clientId, setClientId] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [selectedProfessional, setSelectedProfessional] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -35,26 +39,54 @@ export default function BookPage() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const loadData = async () => {
+    let isMounted = true;
+    let hasLoaded = false;
+
+    const fetchData = async () => {
+      if (hasLoaded) return;
+      hasLoaded = true;
+
       try {
-        const [servicesRes, professionalsRes] = await Promise.all([
+        const [servicesRes, professionalsRes, clientRes] = await Promise.all([
           servicesApi.getAll(),
-          professionalsApi.getAll()
+          professionalsApi.getAll(),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/clients/me`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          })
         ]);
-        setServices(servicesRes.data || []);
-        setProfessionals(professionalsRes.data || []);
+        
+        const clientData = await clientRes.json();
+        
+        if (isMounted) {
+          setServices(servicesRes.data || []);
+          setProfessionals(professionalsRes.data || []);
+          if (clientData.success && clientData.data) {
+            setClientId(clientData.data.id);
+          } else {
+            console.error('Client not found:', clientData);
+            setError('Erro: Cliente não encontrado. Você precisa estar cadastrado como cliente.');
+          }
+        }
       } catch (error) {
         console.error('Error loading data:', error);
-        setError('Erro ao carregar dados');
+        if (isMounted) {
+          setError('Erro ao carregar dados');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    if (user) {
-      loadData();
-    }
-  }, [user]);
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,12 +95,12 @@ export default function BookPage() {
     setSubmitting(true);
 
     try {
-      if (!user) {
-        throw new Error('Usuário não autenticado');
+      if (!user || !clientId) {
+        throw new Error('Usuário não autenticado ou cliente não encontrado');
       }
 
       await appointmentsApi.create({
-        clientId: user.id,
+        clientId: clientId,
         professionalId: selectedProfessional,
         serviceId: selectedService,
         date: selectedDate,
@@ -92,7 +124,7 @@ export default function BookPage() {
   };
 
   const availableProfessionals = selectedService
-    ? professionals.filter(p => p.services.includes(selectedService))
+    ? professionals.filter(p => p.services?.includes(selectedService))
     : professionals;
 
   const selectedServiceData = services.find(s => s.id === selectedService);
@@ -178,7 +210,7 @@ export default function BookPage() {
                 <option value="">Selecione um profissional</option>
                 {availableProfessionals.map((professional) => (
                   <option key={professional.id} value={professional.id}>
-                    {professional.name}
+                    {professional.user?.name || 'N/A'}
                   </option>
                 ))}
               </select>
@@ -194,7 +226,7 @@ export default function BookPage() {
                 onChange={(e) => setSelectedDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
                 required
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-600"
               />
             </div>
 
@@ -207,7 +239,7 @@ export default function BookPage() {
                 value={selectedTime}
                 onChange={(e) => setSelectedTime(e.target.value)}
                 required
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-600"
               />
             </div>
 
@@ -219,7 +251,7 @@ export default function BookPage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-600"
                 placeholder="Alguma observação sobre o agendamento?"
                               />
             </div>
@@ -243,7 +275,7 @@ export default function BookPage() {
                   setError('');
                   setSuccess('');
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-black"
               >
                 Limpar
               </button>

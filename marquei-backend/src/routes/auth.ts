@@ -107,4 +107,71 @@ router.post('/logout', authenticateToken, (req: AuthRequest, res) => {
   }
 });
 
+router.post('/register', async (req, res) => {
+  try {
+    const { name, email, password, phone } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nome, email e senha são obrigatórios'
+      });
+    }
+
+    // Verificar se usuário já existe
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email já cadastrado'
+      });
+    }
+
+    // Hash da senha
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Criar usuário com role CLIENT
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: 'CLIENT',
+        phone: phone || null
+      }
+    });
+
+    // Criar cliente associado
+    const client = await prisma.client.create({
+      data: {
+        name,
+        email,
+        phone: phone || null,
+        userId: user.id
+      }
+    });
+
+    // Remover senha do retorno
+    const { password: _, ...userWithoutPassword } = user;
+
+    res.status(201).json({
+      success: true,
+      data: {
+        user: userWithoutPassword,
+        client
+      },
+      message: 'Cadastro realizado com sucesso'
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao realizar cadastro'
+    });
+  }
+});
+
 export default router;

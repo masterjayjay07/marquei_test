@@ -10,7 +10,7 @@ interface Appointment {
   date: string;
   startTime: string;
   endTime: string;
-  status: 'scheduled' | 'completed' | 'no_show' | 'cancelled';
+  status: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED';
   client: {
     id: string;
     name: string;
@@ -31,23 +31,36 @@ export default function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadAppointments = async () => {
+      setLoading(true);
       try {
         const response = await appointmentsApi.getAll({ date: selectedDate });
-        setAppointments(response.data || []);
+        if (isMounted) {
+          // Filtrar apenas agendamentos pendentes (SCHEDULED)
+          const scheduledOnly = (response.data || []).filter(
+            (apt: Appointment) => apt.status === 'SCHEDULED'
+          );
+          setAppointments(scheduledOnly);
+        }
       } catch (error) {
         console.error('Error loading appointments:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    if (user) {
-      loadAppointments();
-    }
-  }, [user, selectedDate]);
+    loadAppointments();
 
-  const updateAppointmentStatus = async (appointmentId: string, status: 'scheduled' | 'completed' | 'no_show' | 'cancelled') => {
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedDate]);
+
+  const updateAppointmentStatus = async (appointmentId: string, status: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED') => {
     try {
       await appointmentsApi.update(appointmentId, { status });
       setAppointments(appointments.map(apt => 
@@ -81,7 +94,7 @@ export default function SchedulePage() {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="block w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="block w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-600"
           />
         </div>
 
@@ -96,7 +109,7 @@ export default function SchedulePage() {
                         <div className="flex-shrink-0">
                           <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                             <span className="text-blue-600 font-medium">
-                              {appointment.client.name.charAt(0).toUpperCase()}
+                              {appointment.client?.name?.charAt(0).toUpperCase() || 'C'}
                             </span>
                           </div>
                         </div>
@@ -106,14 +119,14 @@ export default function SchedulePage() {
                               {appointment.client.name}
                             </h3>
                             <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                              appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                              appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
-                              appointment.status === 'no_show' ? 'bg-red-100 text-red-800' :
+                              appointment.status === 'SCHEDULED' ? 'bg-blue-100 text-blue-800' :
+                              appointment.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                              appointment.status === 'NO_SHOW' ? 'bg-red-100 text-red-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
-                              {appointment.status === 'scheduled' ? 'Agendado' :
-                               appointment.status === 'completed' ? 'Realizado' :
-                               appointment.status === 'no_show' ? 'Não compareceu' :
+                              {appointment.status === 'SCHEDULED' ? 'Agendado' :
+                               appointment.status === 'COMPLETED' ? 'Realizado' :
+                               appointment.status === 'NO_SHOW' ? 'Não compareceu' :
                                'Cancelado'}
                             </span>
                           </div>
@@ -127,16 +140,16 @@ export default function SchedulePage() {
                       </div>
                     </div>
                     
-                    {appointment.status === 'scheduled' && (
+                    {appointment.status === 'SCHEDULED' && (
                       <div className="ml-4 flex space-x-2">
                         <button
-                          onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
+                          onClick={() => updateAppointmentStatus(appointment.id, 'COMPLETED')}
                           className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
                         >
                           Realizado
                         </button>
                         <button
-                          onClick={() => updateAppointmentStatus(appointment.id, 'no_show')}
+                          onClick={() => updateAppointmentStatus(appointment.id, 'NO_SHOW')}
                           className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
                         >
                           Não compareceu
