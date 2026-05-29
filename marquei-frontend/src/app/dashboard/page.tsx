@@ -140,7 +140,7 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Agendados</span>
-                  <span className="font-medium">{metrics.appointmentsByStatus.scheduled || 0}</span>
+                  <span className="font-medium text-blue-600">{metrics.appointmentsByStatus.scheduled || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Realizados</span>

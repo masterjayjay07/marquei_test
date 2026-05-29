@@ -31,22 +31,19 @@ router.get('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthReq
 
     const serviceCount: Record<string, number> = {};
     appointments.forEach(appointment => {
-      if (appointment.status === 'COMPLETED') {
-        serviceCount[appointment.serviceId] = (serviceCount[appointment.serviceId] || 0) + 1;
-      }
+      serviceCount[appointment.serviceId] = (serviceCount[appointment.serviceId] || 0) + 1;
     });
 
-    const mostRequestedServices = appointments
-      .map(appointment => ({
-        id: appointment.service.id,
-        name: appointment.service.name,
-        duration: appointment.service.duration,
-        price: appointment.service.price,
-        count: serviceCount[appointment.serviceId] || 0
+    const allServices = await prisma.service.findMany();
+    
+    const mostRequestedServices = allServices
+      .map(service => ({
+        id: service.id,
+        name: service.name,
+        duration: service.duration,
+        price: service.price,
+        count: serviceCount[service.id] || 0
       }))
-      .filter((service, index, self) => 
-        index === self.findIndex(s => s.id === service.id)
-      )
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 

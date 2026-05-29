@@ -24,6 +24,38 @@ export default function ImportPage() {
   const { user } = useAuth();
   const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    loadJobs();
+  }, []);
+
+  const loadJobs = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/import', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setImportJobs(data.data);
+        
+        // Iniciar polling para jobs que ainda estão processando
+        data.data.forEach((job: ImportJob) => {
+          if (job.status === 'queued' || job.status === 'processing') {
+            pollJobStatus(job.id);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error loading jobs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'clients' | 'appointments') => {
     const file = e.target.files?.[0];

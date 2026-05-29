@@ -13,6 +13,9 @@ import appointmentsRoutes from './routes/appointments';
 import dashboardRoutes from './routes/dashboard';
 import importRoutes from './routes/import';
 import seedRoutes from './routes/seed';
+import availabilityRoutes from './routes/availability';
+import notificationsRoutes from './routes/notifications';
+import remindersRoutes from './routes/reminders';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -41,6 +44,9 @@ app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/seed', seedRoutes);
+app.use('/api/availability', availabilityRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/reminders', remindersRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

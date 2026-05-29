@@ -100,27 +100,33 @@ model Appointment {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  title     String
-  message   String
-  type      NotificationType
-  read      Boolean          @default(false)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id            String           @id @default(cuid())
+  userId        String
+  appointmentId String?
+  title         String
+  message       String
+  type          NotificationType
+  read          Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
+  @@index([userId, read])
+  @@index([appointmentId])
   @@map("notifications")
 }
 
 model ImportJob {
-  id          String            @id @default(cuid())
-  fileName    String
-  status      ImportJobStatus   @default(PENDING)
-  totalRows   Int?
-  processedRows Int?
-  errors      Json?             // Array of ImportError objects
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id            String            @id @default(cuid())
+  fileName      String
+  type          ImportType
+  status        ImportJobStatus   @default(PENDING)
+  totalRows     Int               @default(0)
+  processedRows Int               @default(0)
+  successRows   Int               @default(0)
+  errorRows     Int               @default(0)
+  errors        Json              @default("[]")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   @@map("import_jobs")
 }
@@ -139,10 +145,16 @@ enum AppointmentStatus {
 }
 
 enum NotificationType {
+  APPOINTMENT_CONFIRMED
   APPOINTMENT_REMINDER
   APPOINTMENT_CANCELLED
-  APPOINTMENT_CONFIRMED
+  APPOINTMENT_RESCHEDULED
   SYSTEM_NOTIFICATION
+}
+
+enum ImportType {
+  CLIENTS
+  APPOINTMENTS
 }
 
 enum ImportJobStatus {

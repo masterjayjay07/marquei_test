@@ -16,24 +16,6 @@ const upload = multer({
   }
 });
 
-interface ImportJob {
-  id: string;
-  fileName: string;
-  type: 'clients' | 'appointments';
-  status: 'queued' | 'processing' | 'completed' | 'completed_with_errors';
-  totalRows: number;
-  processedRows: number;
-  successRows: number;
-  errorRows: number;
-  errors: Array<{
-    line: number;
-    error: string;
-  }>;
-  createdAt: string;
-}
-
-// Armazenamento em memória dos jobs (em produção, usar banco de dados)
-const importJobs: Map<string, ImportJob> = new Map();
 
 // Função para processar arquivo CSV ou Excel
 function parseFile(buffer: Buffer, filename: string): any[] {
@@ -74,29 +56,37 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), upload.single('fil
       });
     }
 
-    // Criar job
-    const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const job: ImportJob = {
-      id: jobId,
-      fileName: req.file.originalname,
-      type,
-      status: 'queued',
-      totalRows: 0,
-      processedRows: 0,
-      successRows: 0,
-      errorRows: 0,
-      errors: [],
-      createdAt: new Date().toISOString()
-    };
-
-    importJobs.set(jobId, job);
+    // Criar job no banco
+    const job = await prisma.importJob.create({
+      data: {
+        fileName: req.file.originalname,
+        type: type.toUpperCase() as 'CLIENTS' | 'APPOINTMENTS',
+        status: 'PENDING',
+        totalRows: 0,
+        processedRows: 0,
+        successRows: 0,
+        errorRows: 0,
+        errors: []
+      }
+    });
 
     // Processar arquivo de forma assíncrona
-    processImport(jobId, req.file.buffer, req.file.originalname, type as 'clients' | 'appointments');
+    processImport(job.id, req.file.buffer, req.file.originalname, type as 'clients' | 'appointments');
 
     res.json({
       success: true,
-      data: job
+      data: {
+        id: job.id,
+        fileName: job.fileName,
+        type: job.type.toLowerCase(),
+        status: job.status.toLowerCase(),
+        totalRows: job.totalRows,
+        processedRows: job.processedRows,
+        successRows: job.successRows,
+        errorRows: job.errorRows,
+        errors: job.errors as any[],
+        createdAt: job.createdAt.toISOString()
+      }
     });
   } catch (error) {
     console.error('Import error:', error);
@@ -108,35 +98,95 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), upload.single('fil
 });
 
 // GET /api/import/:id - Obter status do job
-router.get('/:id', authenticateToken, requireRole(['MANAGER']), (req: AuthRequest, res) => {
-  const jobId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const job = importJobs.get(jobId);
+router.get('/:id', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
+  try {
+    const jobId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const job = await prisma.importJob.findUnique({
+      where: { id: jobId }
+    });
 
-  if (!job) {
-    return res.status(404).json({
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        error: 'Job não encontrado'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: job.id,
+        fileName: job.fileName,
+        type: job.type.toLowerCase(),
+        status: job.status.toLowerCase(),
+        totalRows: job.totalRows,
+        processedRows: job.processedRows,
+        successRows: job.successRows,
+        errorRows: job.errorRows,
+        errors: job.errors as any[],
+        createdAt: job.createdAt.toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Get import job error:', error);
+    res.status(500).json({
       success: false,
-      error: 'Job não encontrado'
+      error: 'Erro ao buscar job'
     });
   }
+});
 
-  res.json({
-    success: true,
-    data: job
-  });
+// GET /api/import - Listar todos os jobs
+router.get('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
+  try {
+    const jobs = await prisma.importJob.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      data: jobs.map(job => ({
+        id: job.id,
+        fileName: job.fileName,
+        type: job.type.toLowerCase(),
+        status: job.status.toLowerCase(),
+        totalRows: job.totalRows,
+        processedRows: job.processedRows,
+        successRows: job.successRows,
+        errorRows: job.errorRows,
+        errors: job.errors as any[],
+        createdAt: job.createdAt.toISOString()
+      }))
+    });
+  } catch (error) {
+    console.error('List import jobs error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao listar jobs'
+    });
+  }
 });
 
 // Função para processar importação de forma assíncrona
 async function processImport(jobId: string, buffer: Buffer, filename: string, type: 'clients' | 'appointments') {
-  const job = importJobs.get(jobId);
-  if (!job) return;
-
   try {
     // Atualizar status para processing
-    job.status = 'processing';
+    await prisma.importJob.update({
+      where: { id: jobId },
+      data: { status: 'PROCESSING' }
+    });
 
     // Parsear arquivo
     const rows = parseFile(buffer, filename);
-    job.totalRows = rows.length;
+    
+    await prisma.importJob.update({
+      where: { id: jobId },
+      data: { totalRows: rows.length }
+    });
+
+    let successRows = 0;
+    let errorRows = 0;
+    const errors: any[] = [];
 
     // Processar cada linha
     for (let i = 0; i < rows.length; i++) {
@@ -150,26 +200,51 @@ async function processImport(jobId: string, buffer: Buffer, filename: string, ty
           await processAppointmentRow(row);
         }
 
-        job.successRows++;
+        successRows++;
       } catch (error) {
-        job.errorRows++;
-        job.errors.push({
+        errorRows++;
+        errors.push({
           line: lineNumber,
           error: error instanceof Error ? error.message : 'Erro desconhecido'
         });
       }
 
-      job.processedRows++;
+      // Atualizar progresso a cada 10 linhas
+      if ((i + 1) % 10 === 0 || i === rows.length - 1) {
+        await prisma.importJob.update({
+          where: { id: jobId },
+          data: {
+            processedRows: i + 1,
+            successRows,
+            errorRows,
+            errors
+          }
+        });
+      }
     }
 
     // Atualizar status final
-    job.status = job.errorRows > 0 ? 'completed_with_errors' : 'completed';
+    await prisma.importJob.update({
+      where: { id: jobId },
+      data: {
+        status: errorRows > 0 ? 'COMPLETED' : 'COMPLETED',
+        processedRows: rows.length,
+        successRows,
+        errorRows,
+        errors
+      }
+    });
   } catch (error) {
     console.error('Process import error:', error);
-    job.status = 'completed_with_errors';
-    job.errors.push({
-      line: 0,
-      error: error instanceof Error ? error.message : 'Erro ao processar arquivo'
+    await prisma.importJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'FAILED',
+        errors: [{
+          line: 0,
+          error: error instanceof Error ? error.message : 'Erro ao processar arquivo'
+        }]
+      }
     });
   }
 }

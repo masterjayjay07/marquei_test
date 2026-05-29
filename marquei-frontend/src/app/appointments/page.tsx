@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Layout } from '@/components/Layout';
-import { appointmentsApi } from '@/services/api';
+import { appointmentsApi, clientsApi, professionalsApi, servicesApi } from '@/services/api';
+import { AppointmentFilters } from '@/components/AppointmentFilters';
 
 interface Appointment {
   id: string;
@@ -38,20 +39,56 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState<any>({});
+  const [clients, setClients] = useState<any[]>([]);
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadFilterData = async () => {
+      try {
+        const [clientsRes, professionalsRes, servicesRes] = await Promise.all([
+          clientsApi.getAll(),
+          professionalsApi.getAll(),
+          servicesApi.getAll()
+        ]);
+        
+        setClients(clientsRes.data || []);
+        setProfessionals(professionalsRes.data || []);
+        setServices(servicesRes.data || []);
+      } catch (error) {
+        console.error('Error loading filter data:', error);
+      }
+    };
+
+    loadFilterData();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
-    let hasLoaded = false;
     
     const loadAppointments = async () => {
-      if (hasLoaded) return;
-      hasLoaded = true;
+      setLoading(true);
 
       try {
-        const response = await appointmentsApi.getAll();
+        const queryParams = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) queryParams.append(key, value as string);
+        });
 
-        if (isMounted) {
-          setAppointments(response.data || []);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/appointments?${queryParams}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        const data = await response.json();
+
+        if (isMounted && data.success) {
+          setAppointments(data.data || []);
         }
       } catch (error) {
         if (isMounted) {
@@ -69,7 +106,7 @@ export default function AppointmentsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [filters]);
 
   const updateAppointmentStatus = async (appointmentId: string, status: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED') => {
     try {
@@ -144,6 +181,14 @@ export default function AppointmentsPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
           {user?.role === 'MANAGER' ? 'Todos os Agendamentos' : 'Meus Agendamentos'}
         </h1>
+
+        <AppointmentFilters
+          filters={filters}
+          onFilterChange={setFilters}
+          clients={clients}
+          professionals={professionals}
+          services={services}
+        />
 
         <div className="bg-white shadow rounded-lg">
           <div>

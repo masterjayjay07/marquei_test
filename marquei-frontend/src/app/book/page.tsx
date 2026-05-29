@@ -35,6 +35,8 @@ export default function BookPage() {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -87,6 +89,46 @@ export default function BookPage() {
       isMounted = false;
     };
   }, []);
+
+  // Carregar horários disponíveis quando serviço, profissional e data forem selecionados
+  useEffect(() => {
+    const loadAvailableSlots = async () => {
+      if (!selectedService || !selectedProfessional || !selectedDate) {
+        setAvailableSlots([]);
+        return;
+      }
+
+      setLoadingSlots(true);
+      setSelectedTime('');
+      
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/availability/slots?` +
+          `professionalId=${selectedProfessional}&serviceId=${selectedService}&date=${selectedDate}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        const data = await response.json();
+        
+        if (data.success) {
+          setAvailableSlots(data.data.availableSlots || []);
+        } else {
+          setError(data.error || 'Erro ao carregar horários disponíveis');
+        }
+      } catch (error) {
+        console.error('Error loading slots:', error);
+        setError('Erro ao carregar horários disponíveis');
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    loadAvailableSlots();
+  }, [selectedService, selectedProfessional, selectedDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,13 +276,36 @@ export default function BookPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Horário
               </label>
-              <input
-                type="time"
-                value={selectedTime}
-                onChange={(e) => setSelectedTime(e.target.value)}
-                required
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-600"
-              />
+              {loadingSlots ? (
+                <div className="text-center py-4 text-gray-500">
+                  Carregando horários disponíveis...
+                </div>
+              ) : availableSlots.length > 0 ? (
+                <div className="grid grid-cols-4 gap-2">
+                  {availableSlots.map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setSelectedTime(slot)}
+                      className={`px-4 py-2 rounded-md border ${
+                        selectedTime === slot
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'
+                      }`}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              ) : selectedService && selectedProfessional && selectedDate ? (
+                <div className="text-center py-4 text-gray-500 bg-gray-50 rounded border border-gray-200">
+                  Nenhum horário disponível para esta data
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-400 bg-gray-50 rounded border border-gray-200">
+                  Selecione serviço, profissional e data para ver horários disponíveis
+                </div>
+              )}
             </div>
 
             <div>

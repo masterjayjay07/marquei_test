@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Layout } from '@/components/Layout';
-import { appointmentsApi, AppointmentUpdateData } from '@/services/api';
+import { appointmentsApi, AppointmentUpdateData, professionalsApi, servicesApi } from '@/services/api';
+import { AppointmentFilters } from '@/components/AppointmentFilters';
 
 interface Appointment {
   id: string;
@@ -30,19 +31,53 @@ export default function MyAppointmentsPage() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<any>({});
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadFilterData = async () => {
+      try {
+        const [professionalsRes, servicesRes] = await Promise.all([
+          professionalsApi.getAll(),
+          servicesApi.getAll()
+        ]);
+        
+        setProfessionals(professionalsRes.data || []);
+        setServices(servicesRes.data || []);
+      } catch (error) {
+        console.error('Error loading filter data:', error);
+      }
+    };
+
+    loadFilterData();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
-    let hasLoaded = false;
 
     const loadAppointments = async () => {
-      if (hasLoaded) return;
-      hasLoaded = true;
+      setLoading(true);
 
       try {
-        const response = await appointmentsApi.getAll();
-        if (isMounted) {
-          setAppointments(response.data || []);
+        const queryParams = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) queryParams.append(key, value as string);
+        });
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/appointments?${queryParams}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        const data = await response.json();
+
+        if (isMounted && data.success) {
+          setAppointments(data.data || []);
         }
       } catch (error) {
         console.error('Error loading appointments:', error);
@@ -58,16 +93,46 @@ export default function MyAppointmentsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [filters]);
+
+  const canCancelAppointment = (appointment: Appointment) => {
+    // A data vem como UTC (YYYY-MM-DD), precisamos criar a data/hora correta
+    const [year, month, day] = appointment.date.split('T')[0].split('-').map(Number);
+    const [hours, minutes] = appointment.startTime.split(':').map(Number);
+    
+    // Criar data/hora local do agendamento
+    const appointmentDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+    
+    const now = new Date();
+    const hoursDifference = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    
+    console.log('Appointment:', appointmentDateTime, 'Now:', now, 'Diff hours:', hoursDifference);
+    
+    return hoursDifference >= 4;
+  };
 
   const cancelAppointment = async (appointmentId: string) => {
+    const appointment = appointments.find(apt => apt.id === appointmentId);
+    
+    if (!appointment) return;
+    
+    if (!canCancelAppointment(appointment)) {
+      alert('Cancelamento deve ser feito com no mínimo 4 horas de antecedência');
+      return;
+    }
+
+    if (!confirm('Tem certeza que deseja cancelar este agendamento?')) {
+      return;
+    }
+
     try {
       await appointmentsApi.update(appointmentId, { status: 'CANCELLED' } as AppointmentUpdateData);
       setAppointments(appointments.map(apt => 
         apt.id === appointmentId ? { ...apt, status: 'CANCELLED' } : apt
       ));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error cancelling appointment:', error);
+      alert(error.response?.data?.error || 'Erro ao cancelar agendamento');
     }
   };
 
@@ -85,6 +150,14 @@ export default function MyAppointmentsPage() {
     <Layout>
       <div className="p-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Meus Agendamentos</h1>
+
+        <AppointmentFilters
+          filters={filters}
+          onFilterChange={setFilters}
+          professionals={professionals}
+          services={services}
+          showClientFilter={false}
+        />
 
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
@@ -134,13 +207,24 @@ export default function MyAppointmentsPage() {
                     </div>
                     
                     {appointment.status === 'SCHEDULED' && (
-                      <div className="ml-4">
+                      <div className="ml-4 flex flex-col items-end gap-1">
                         <button
                           onClick={() => cancelAppointment(appointment.id)}
-                          className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                          disabled={!canCancelAppointment(appointment)}
+                          className={`px-3 py-1 text-white text-sm rounded ${
+                            canCancelAppointment(appointment)
+                              ? 'bg-red-600 hover:bg-red-700'
+                              : 'bg-gray-400 cursor-not-allowed'
+                          }`}
+                          title={!canCancelAppointment(appointment) ? 'Cancelamento deve ser feito com 4h de antecedência' : ''}
                         >
                           Cancelar
                         </button>
+                        {!canCancelAppointment(appointment) && (
+                          <span className="text-xs text-gray-500">
+                            Menos de 4h
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>

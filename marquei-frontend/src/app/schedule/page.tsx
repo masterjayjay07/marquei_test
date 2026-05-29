@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Layout } from '@/components/Layout';
-import { appointmentsApi } from '@/services/api';
+import { appointmentsApi, clientsApi, servicesApi } from '@/services/api';
+import { AppointmentFilters } from '@/components/AppointmentFilters';
 
 interface Appointment {
   id: string;
@@ -28,7 +29,22 @@ export default function SchedulePage() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filters, setFilters] = useState<any>({ status: 'SCHEDULED' });
+  const [clients, setClients] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadFilterData = async () => {
+      try {
+        const servicesRes = await servicesApi.getAll();
+        setServices(servicesRes.data || []);
+      } catch (error) {
+        console.error('Error loading filter data:', error);
+      }
+    };
+
+    loadFilterData();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -36,13 +52,24 @@ export default function SchedulePage() {
     const loadAppointments = async () => {
       setLoading(true);
       try {
-        const response = await appointmentsApi.getAll({ date: selectedDate });
-        if (isMounted) {
-          // Filtrar apenas agendamentos pendentes (SCHEDULED)
-          const scheduledOnly = (response.data || []).filter(
-            (apt: Appointment) => apt.status === 'SCHEDULED'
-          );
-          setAppointments(scheduledOnly);
+        const queryParams = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) queryParams.append(key, value as string);
+        });
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/appointments?${queryParams}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        const data = await response.json();
+
+        if (isMounted && data.success) {
+          setAppointments(data.data || []);
         }
       } catch (error) {
         console.error('Error loading appointments:', error);
@@ -58,7 +85,7 @@ export default function SchedulePage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedDate]);
+  }, [filters]);
 
   const updateAppointmentStatus = async (appointmentId: string, status: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED') => {
     try {
@@ -86,17 +113,14 @@ export default function SchedulePage() {
       <div className="p-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Minha Agenda</h1>
         
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Data
-          </label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="block w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black placeholder-gray-600"
-          />
-        </div>
+        <AppointmentFilters
+          filters={filters}
+          onFilterChange={setFilters}
+          services={services}
+          showClientFilter={false}
+          showProfessionalFilter={false}
+          showClientNameFilter={true}
+        />
 
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">

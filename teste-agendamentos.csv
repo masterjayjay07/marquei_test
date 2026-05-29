@@ -1,0 +1,6 @@
+Data,Hora,ClienteEmail,ProfissionalEmail,ServicoID
+2026-06-01,09:00,maria.silva@email.com,joao@email.com,SERVICE_ID_AQUI
+2026-06-01,10:00,joao.santos@email.com,joao@email.com,SERVICE_ID_AQUI
+2026-06-02,14:00,ana.costa@email.com,joao@email.com,SERVICE_ID_AQUI
+2026-06-03,15:30,pedro.oliveira@email.com,joao@email.com,SERVICE_ID_AQUI
+2026-06-04,11:00,carla.souza@email.com,joao@email.com,SERVICE_ID_AQUI
