@@ -16,7 +16,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Ativar serviço de lembretes automático
   useReminderService(!!user);
 
   useEffect(() => {
@@ -38,22 +37,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           setUnreadCount(data.data.unreadCount);
         }
       } catch (error) {
-        console.error('Error fetching unread count:', error);
+        console.error('Erro ao buscar contador de nao lidas:', error);
       }
     };
 
     fetchUnreadCount();
     
-    // Atualizar a cada 30 segundos
     const interval = setInterval(fetchUnreadCount, 30000);
     
     return () => clearInterval(interval);
   }, [user]);
 
-  // Atualizar contador quando lembretes são processados
   useEffect(() => {
     const handleReminderProcessed = () => {
-      // Recarregar contador após processamento de lembretes
       const fetchUnreadCount = async () => {
         if (!user) return;
         
@@ -72,14 +68,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             setUnreadCount(data.data.unreadCount);
           }
         } catch (error) {
-          console.error('Error fetching unread count:', error);
+          console.error('Erro ao buscar contador de nao lidas:', error);
         }
       };
 
       fetchUnreadCount();
     };
 
-    // Escutar evento customizado de lembretes processados
     window.addEventListener('remindersProcessed', handleReminderProcessed);
     
     return () => {

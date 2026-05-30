@@ -65,7 +65,7 @@ router.get('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthReq
       }
     });
   } catch (error) {
-    console.error('Get dashboard metrics error:', error);
+    console.error('Erro ao buscar metricas do dashboard:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'

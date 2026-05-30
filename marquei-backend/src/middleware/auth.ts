@@ -11,7 +11,7 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  console.log('Auth middleware - Token received:', token ? 'YES' : 'NO');
+  console.log('Token recebido:', token ? 'sim' : 'nao');
 
   if (!token) {
     return res.status(401).json({ 
@@ -22,16 +22,16 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
 
   try {
     const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
-    console.log('Using JWT_SECRET for verification:', jwtSecret.substring(0, 10) + '...');
+    console.log('JWT_SECRET existe:', !!process.env.JWT_SECRET);
+    console.log('Usando JWT_SECRET:', jwtSecret.substring(0, 10) + '...');
     const decoded = jwt.verify(token, jwtSecret) as any;
-    console.log('Token decoded:', { userId: decoded.userId, role: decoded.role });
+    console.log('Token decodificado:', { userId: decoded.userId, role: decoded.role });
     
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId }
     });
 
-    console.log('User found:', user ? 'YES' : 'NO', user ? `Role: ${user.role}` : '');
+    console.log('Usuario encontrado:', user ? 'sim' : 'nao', user ? `Cargo: ${user.role}` : '');
 
     if (!user) {
       return res.status(403).json({ 
@@ -45,10 +45,10 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       phone: user.phone || undefined,
       role: user.role
     };
-    console.log('User attached to request:', req.user.role);
+    console.log('Usuario anexado na requisicao:', req.user.role);
     next();
   } catch (err) {
-    console.error('Auth error:', err);
+    console.error('Erro de autenticacao:', err);
     return res.status(403).json({ 
       success: false, 
       error: 'Token inválido ou expirado' 

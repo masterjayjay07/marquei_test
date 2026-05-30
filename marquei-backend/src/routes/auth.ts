@@ -5,29 +5,29 @@ import { ApiResponse } from '../types';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/prisma';
 
-console.log('Auth routes loaded');
+console.log('Rotas de autenticacao carregadas');
 
 const router = express.Router();
 
 router.post('/login', async (req, res) => {
   try {
-    console.log('Login attempt:', req.body);
+    console.log('Tentativa de login:', req.body);
     const { email, password } = req.body;
 
     if (!email || !password) {
-      console.log('Missing email or password');
+      console.log('Faltando email ou senha');
       return res.status(400).json({
         success: false,
         error: 'Email e senha são obrigatórios'
       });
     }
 
-    console.log('Finding user:', email);
+    console.log('Buscando usuario:', email);
     const user = await prisma.user.findUnique({
       where: { email }
     });
 
-    console.log('User found:', user ? 'YES' : 'NO');
+    console.log('Usuario encontrado:', user ? 'sim' : 'nao');
 
     if (!user) {
       return res.status(401).json({
@@ -36,10 +36,9 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Verificar senha
-    console.log('Comparing passwords...');
+    console.log('Comparando senhas...');
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('Password valid:', isPasswordValid);
+    console.log('Senha valida:', isPasswordValid);
     
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -48,18 +47,16 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    console.log('Generating token...');
+    console.log('Gerando token...');
     const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-    console.log('Using JWT_SECRET:', jwtSecret.substring(0, 10) + '...');
+    console.log('Usando JWT_SECRET:', jwtSecret.substring(0, 10) + '...');
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
       jwtSecret
-      // SEM EXPIRAÇÃO - token permanente
     );
 
-    console.log('Token generated successfully');
+    console.log('Token gerado com sucesso');
 
-    // Remover senha do retorno
     const { password: _, ...userWithoutPassword } = user;
 
     res.json({
@@ -69,7 +66,7 @@ router.post('/login', async (req, res) => {
       token
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Erro de login:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -84,7 +81,7 @@ router.get('/me', authenticateToken, (req: AuthRequest, res) => {
       data: req.user!
     });
   } catch (error) {
-    console.error('Get user error:', error);
+    console.error('Erro ao buscar usuario:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -99,7 +96,7 @@ router.post('/logout', authenticateToken, (req: AuthRequest, res) => {
       message: 'Logout realizado com sucesso'
     });
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('Erro de logout:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -118,7 +115,6 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Verificar se usuário já existe
     const existingUser = await prisma.user.findUnique({
       where: { email }
     });
@@ -130,10 +126,8 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Hash da senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Criar usuário com role CLIENT
     const user = await prisma.user.create({
       data: {
         name,
@@ -144,7 +138,6 @@ router.post('/register', async (req, res) => {
       }
     });
 
-    // Criar cliente associado
     const client = await prisma.client.create({
       data: {
         name,
@@ -154,7 +147,6 @@ router.post('/register', async (req, res) => {
       }
     });
 
-    // Remover senha do retorno
     const { password: _, ...userWithoutPassword } = user;
 
     res.status(201).json({
@@ -166,7 +158,7 @@ router.post('/register', async (req, res) => {
       message: 'Cadastro realizado com sucesso'
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('Erro de registro:', error);
     res.status(500).json({
       success: false,
       error: 'Erro ao realizar cadastro'

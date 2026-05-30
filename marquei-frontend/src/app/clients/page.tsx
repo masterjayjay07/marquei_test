@@ -37,7 +37,7 @@ export default function ClientsPage() {
         setClients(data.data || []);
       }
     } catch (error) {
-      console.error('Error loading clients:', error);
+      console.error('Erro ao carregar clientes:', error);
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ export default function ClientsPage() {
           setClients(data.data || []);
         }
       } catch (error) {
-        console.error('Error loading clients:', error);
+        console.error('Erro ao carregar clientes:', error);
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -105,7 +105,7 @@ export default function ClientsPage() {
         loadClients();
       }
     } catch (error) {
-      console.error('Error saving client:', error);
+      console.error('Erro ao salvar cliente:', error);
       alert('Erro ao salvar cliente');
     }
   };
@@ -138,7 +138,7 @@ export default function ClientsPage() {
         loadClients();
       }
     } catch (error) {
-      console.error('Error deleting client:', error);
+      console.error('Erro ao deletar cliente:', error);
       alert('Erro ao excluir cliente');
     }
   };

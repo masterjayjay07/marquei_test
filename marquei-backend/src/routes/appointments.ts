@@ -36,7 +36,6 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
       }
     }
 
-    // Aplicar filtros adicionais
     if (clientId) {
       whereClause.clientId = clientId as string;
     }
@@ -91,7 +90,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
       data: appointments
     });
   } catch (error) {
-    console.error('Get appointments error:', error);
+    console.error('Erro ao buscar agendamentos:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -132,7 +131,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
       data: appointment
     });
   } catch (error) {
-    console.error('Get appointment error:', error);
+    console.error('Erro ao buscar agendamento:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -151,7 +150,6 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       });
     }
 
-    // Validar horário comercial (8h às 18h)
     const [hour] = startTime.split(':').map(Number);
     if (hour < 8 || hour >= 18) {
       return res.status(400).json({
@@ -175,9 +173,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       }
     }
 
-    // Usar transação para evitar double-booking
     const newAppointment = await prisma.$transaction(async (tx) => {
-      // Verificar se já existe agendamento no mesmo horário
       const conflictingAppointment = await tx.appointment.findFirst({
         where: {
           professionalId,
@@ -212,7 +208,6 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         throw new Error('Este horário já está ocupado');
       }
 
-      // Criar agendamento
       return await tx.appointment.create({
         data: {
           clientId,
@@ -241,7 +236,6 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       });
     });
 
-    // Enviar notificações de forma assíncrona (não bloqueia a resposta)
     const appointmentDate = new Date(newAppointment.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
     const appointmentDetails = `${newAppointment.service.name} em ${appointmentDate} às ${newAppointment.startTime}`;
     
@@ -268,7 +262,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       message: 'Agendamento criado com sucesso'
     });
   } catch (error: any) {
-    console.error('Create appointment error:', error);
+    console.error('Erro ao criar agendamento:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Erro interno do servidor'
@@ -281,7 +275,6 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
     const id = req.params.id as string;
     const { date, startTime, endTime, status, notes } = req.body;
 
-    // Se for cliente tentando cancelar ou remarcar
     if (req.user!.role === 'CLIENT' && (status === 'CANCELLED' || date || startTime)) {
       const appointment = await prisma.appointment.findUnique({
         where: { id }
@@ -294,21 +287,18 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         });
       }
 
-      // Verificar antecedência de 4 horas
-      // A data no banco está em UTC (YYYY-MM-DD), mas o horário é local
       const appointmentDate = new Date(appointment.date);
       const year = appointmentDate.getUTCFullYear();
       const month = appointmentDate.getUTCMonth();
       const day = appointmentDate.getUTCDate();
       const [hours, minutes] = appointment.startTime.split(':').map(Number);
       
-      // Criar data/hora local do agendamento
       const appointmentDateTime = new Date(year, month, day, hours, minutes, 0, 0);
 
       const now = new Date();
       const hoursDifference = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-      console.log('Backend - Appointment:', appointmentDateTime, 'Now:', now, 'Diff hours:', hoursDifference);
+      console.log('Agendamento:', appointmentDateTime, 'Agora:', now, 'Diferenca horas:', hoursDifference);
 
       if (hoursDifference < 4) {
         return res.status(400).json({
@@ -343,7 +333,6 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
       }
     });
 
-    // Enviar notificações de forma assíncrona
     const appointmentDate = new Date(updatedAppointment.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
     const appointmentDetails = `${updatedAppointment.service.name} em ${appointmentDate} às ${updatedAppointment.startTime}`;
     
@@ -379,7 +368,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
       message: 'Agendamento atualizado com sucesso'
     });
   } catch (error) {
-    console.error('Update appointment error:', error);
+    console.error('Erro ao atualizar agendamento:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -400,7 +389,7 @@ router.delete('/:id', authenticateToken, requireRole(['MANAGER']), async (req: A
       message: 'Agendamento excluído com sucesso'
     });
   } catch (error) {
-    console.error('Delete appointment error:', error);
+    console.error('Erro ao deletar agendamento:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'

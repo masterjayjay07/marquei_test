@@ -6,10 +6,10 @@ import { prisma } from '../lib/prisma';
 
 const router = express.Router();
 
-console.log('Clients routes loaded');
+console.log('Rotas de clientes carregadas');
 
 router.get('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
-  console.log('GET /clients - Route hit');
+  console.log('GET /clients - Rota acessada');
   try {
     const clients = await prisma.client.findMany({
       orderBy: { createdAt: 'desc' }
@@ -20,7 +20,7 @@ router.get('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthReq
       data: clients
     });
   } catch (error) {
-    console.error('Get clients error:', error);
+    console.error('Erro ao buscar clientes:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -30,7 +30,6 @@ router.get('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthReq
 
 router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    // Verificar se é um cliente
     if (req.user!.role !== 'CLIENT') {
       return res.status(403).json({
         success: false,
@@ -54,7 +53,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
       data: client
     });
   } catch (error) {
-    console.error('Get client error:', error);
+    console.error('Erro ao buscar cliente:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -81,7 +80,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
       data: client
     });
   } catch (error) {
-    console.error('Get client error:', error);
+    console.error('Erro ao buscar cliente:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -102,9 +101,7 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRe
 
     let userId = null;
 
-    // Se senha foi fornecida, criar usuário com hash
     if (password) {
-      // Verificar se usuário já existe
       const existingUser = await prisma.user.findUnique({
         where: { email }
       });
@@ -144,7 +141,7 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRe
       message: 'Cliente criado com sucesso'
     });
   } catch (error) {
-    console.error('Create client error:', error);
+    console.error('Erro ao criar cliente:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -172,7 +169,7 @@ router.put('/:id', authenticateToken, requireRole(['MANAGER']), async (req: Auth
       message: 'Cliente atualizado com sucesso'
     });
   } catch (error) {
-    console.error('Update client error:', error);
+    console.error('Erro ao atualizar cliente:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -193,7 +190,7 @@ router.delete('/:id', authenticateToken, requireRole(['MANAGER']), async (req: A
       message: 'Cliente excluído com sucesso'
     });
   } catch (error) {
-    console.error('Delete client error:', error);
+    console.error('Erro ao deletar cliente:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'

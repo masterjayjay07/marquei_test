@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.get('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    console.log('Fetching professionals...');
+    console.log('Buscando profissionais...');
     const professionals = await prisma.professional.findMany({
       include: {
         user: {
@@ -26,19 +26,18 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
       }
     });
 
-    // Transformar para incluir array de serviceIds
     const professionalsWithServices = professionals.map(prof => ({
       ...prof,
       services: prof.professionalServices.map(ps => ps.serviceId)
     }));
 
-    console.log('Professionals found:', professionals.length);
+    console.log('Profissionais encontrados:', professionals.length);
     res.json({
       success: true,
       data: professionalsWithServices
     });
   } catch (error) {
-    console.error('Get professionals error:', error);
+    console.error('Erro ao buscar profissionais:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -84,7 +83,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
       data: professionalWithServices
     });
   } catch (error) {
-    console.error('Get professional error:', error);
+    console.error('Erro ao buscar profissional:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -103,7 +102,6 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRe
       });
     }
 
-    // Criar usuário primeiro com senha hash
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
@@ -114,7 +112,6 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRe
       }
     });
 
-    // Criar profissional com workSchedule padrão
     const professional = await prisma.professional.create({
       data: {
         userId: user.id,
@@ -139,7 +136,6 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRe
       }
     });
 
-    // Adicionar specialty nos dados de retorno (não salva no banco)
     const professionalWithSpecialty = {
       ...professional,
       specialty
@@ -151,7 +147,7 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRe
       message: 'Profissional criado com sucesso'
     });
   } catch (error) {
-    console.error('Create professional error:', error);
+    console.error('Erro ao criar profissional:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'

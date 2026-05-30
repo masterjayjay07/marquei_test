@@ -67,12 +67,12 @@ export default function BookPage() {
           if (clientData.success && clientData.data) {
             setClientId(clientData.data.id);
           } else {
-            console.error('Client not found:', clientData);
+            console.error('Cliente nao encontrado:', clientData);
             setError('Erro: Cliente não encontrado. Você precisa estar cadastrado como cliente.');
           }
         }
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Erro ao carregar dados:', error);
         if (isMounted) {
           setError('Erro ao carregar dados');
         }
@@ -90,7 +90,6 @@ export default function BookPage() {
     };
   }, []);
 
-  // Carregar horários disponíveis quando serviço, profissional e data forem selecionados
   useEffect(() => {
     const loadAvailableSlots = async () => {
       if (!selectedService || !selectedProfessional || !selectedDate) {
@@ -120,7 +119,7 @@ export default function BookPage() {
           setError(data.error || 'Erro ao carregar horários disponíveis');
         }
       } catch (error) {
-        console.error('Error loading slots:', error);
+        console.error('Erro ao carregar horarios:', error);
         setError('Erro ao carregar horários disponíveis');
       } finally {
         setLoadingSlots(false);
@@ -152,7 +151,6 @@ export default function BookPage() {
 
       setSuccess('Agendamento realizado com sucesso!');
       
-      // Reset form
       setSelectedService('');
       setSelectedProfessional('');
       setSelectedDate('');

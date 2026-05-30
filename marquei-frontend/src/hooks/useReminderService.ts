@@ -22,7 +22,6 @@ export const useReminderService = (enabled: boolean = true) => {
         if (data.success) {
           console.log(`Lembretes processados: ${data.data.sentCount} enviados`);
           
-          // Disparar evento customizado para atualizar contador de notificações
           if (data.data.sentCount > 0) {
             window.dispatchEvent(new Event('remindersProcessed'));
           }
@@ -32,10 +31,8 @@ export const useReminderService = (enabled: boolean = true) => {
       }
     };
 
-    // Processar imediatamente ao montar
     processReminders();
 
-    // Processar a cada 5 minutos (300000ms)
     intervalRef.current = setInterval(processReminders, 5 * 60 * 1000);
 
     return () => {

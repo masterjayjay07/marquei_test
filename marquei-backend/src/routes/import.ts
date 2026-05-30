@@ -8,16 +8,14 @@ import { ApiResponse } from '../types';
 
 const router = express.Router();
 
-// Configurar multer para upload de arquivos
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB
+    fileSize: 10 * 1024 * 1024
   }
 });
 
 
-// Função para processar arquivo CSV ou Excel
 function parseFile(buffer: Buffer, filename: string): any[] {
   const ext = filename.split('.').pop()?.toLowerCase();
 
@@ -37,7 +35,6 @@ function parseFile(buffer: Buffer, filename: string): any[] {
   throw new Error('Formato de arquivo não suportado');
 }
 
-// POST /api/import - Iniciar importação
 router.post('/', authenticateToken, requireRole(['MANAGER']), upload.single('file'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
@@ -56,7 +53,6 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), upload.single('fil
       });
     }
 
-    // Criar job no banco
     const job = await prisma.importJob.create({
       data: {
         fileName: req.file.originalname,
@@ -70,7 +66,6 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), upload.single('fil
       }
     });
 
-    // Processar arquivo de forma assíncrona
     processImport(job.id, req.file.buffer, req.file.originalname, type as 'clients' | 'appointments');
 
     res.json({
@@ -89,7 +84,7 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), upload.single('fil
       }
     });
   } catch (error) {
-    console.error('Import error:', error);
+    console.error('Erro de importacao:', error);
     res.status(500).json({
       success: false,
       error: 'Erro ao iniciar importação'
@@ -97,7 +92,6 @@ router.post('/', authenticateToken, requireRole(['MANAGER']), upload.single('fil
   }
 });
 
-// GET /api/import/:id - Obter status do job
 router.get('/:id', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
   try {
     const jobId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -128,7 +122,7 @@ router.get('/:id', authenticateToken, requireRole(['MANAGER']), async (req: Auth
       }
     });
   } catch (error) {
-    console.error('Get import job error:', error);
+    console.error('Erro ao buscar job de importacao:', error);
     res.status(500).json({
       success: false,
       error: 'Erro ao buscar job'
@@ -136,7 +130,6 @@ router.get('/:id', authenticateToken, requireRole(['MANAGER']), async (req: Auth
   }
 });
 
-// GET /api/import - Listar todos os jobs
 router.get('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
   try {
     const jobs = await prisma.importJob.findMany({
@@ -159,7 +152,7 @@ router.get('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthReq
       }))
     });
   } catch (error) {
-    console.error('List import jobs error:', error);
+    console.error('Erro ao listar jobs de importacao:', error);
     res.status(500).json({
       success: false,
       error: 'Erro ao listar jobs'
@@ -167,16 +160,13 @@ router.get('/', authenticateToken, requireRole(['MANAGER']), async (req: AuthReq
   }
 });
 
-// Função para processar importação de forma assíncrona
 async function processImport(jobId: string, buffer: Buffer, filename: string, type: 'clients' | 'appointments') {
   try {
-    // Atualizar status para processing
     await prisma.importJob.update({
       where: { id: jobId },
       data: { status: 'PROCESSING' }
     });
 
-    // Parsear arquivo
     const rows = parseFile(buffer, filename);
     
     await prisma.importJob.update({
@@ -188,10 +178,9 @@ async function processImport(jobId: string, buffer: Buffer, filename: string, ty
     let errorRows = 0;
     const errors: any[] = [];
 
-    // Processar cada linha
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const lineNumber = i + 2; // +2 porque linha 1 é header e arrays começam em 0
+      const lineNumber = i + 2;
 
       try {
         if (type === 'clients') {
@@ -209,7 +198,6 @@ async function processImport(jobId: string, buffer: Buffer, filename: string, ty
         });
       }
 
-      // Atualizar progresso a cada 10 linhas
       if ((i + 1) % 10 === 0 || i === rows.length - 1) {
         await prisma.importJob.update({
           where: { id: jobId },
@@ -223,7 +211,6 @@ async function processImport(jobId: string, buffer: Buffer, filename: string, ty
       }
     }
 
-    // Atualizar status final
     await prisma.importJob.update({
       where: { id: jobId },
       data: {
@@ -235,7 +222,7 @@ async function processImport(jobId: string, buffer: Buffer, filename: string, ty
       }
     });
   } catch (error) {
-    console.error('Process import error:', error);
+    console.error('Erro ao processar importacao:', error);
     await prisma.importJob.update({
       where: { id: jobId },
       data: {
@@ -249,7 +236,6 @@ async function processImport(jobId: string, buffer: Buffer, filename: string, ty
   }
 }
 
-// Processar linha de cliente
 async function processClientRow(row: any) {
   const { Nome, Email, Telefone } = row;
 
@@ -257,7 +243,6 @@ async function processClientRow(row: any) {
     throw new Error('Nome e Email são obrigatórios');
   }
 
-  // Verificar se cliente já existe
   const existing = await prisma.client.findFirst({
     where: { email: Email }
   });
@@ -266,7 +251,6 @@ async function processClientRow(row: any) {
     throw new Error('Cliente já cadastrado com este email');
   }
 
-  // Criar cliente
   await prisma.client.create({
     data: {
       name: Nome,
@@ -276,7 +260,6 @@ async function processClientRow(row: any) {
   });
 }
 
-// Processar linha de agendamento
 async function processAppointmentRow(row: any) {
   const { Data, Hora, ClienteEmail, ProfissionalEmail, ServicoID } = row;
 
@@ -284,7 +267,6 @@ async function processAppointmentRow(row: any) {
     throw new Error('Todos os campos são obrigatórios');
   }
 
-  // Buscar cliente
   const client = await prisma.client.findFirst({
     where: { email: ClienteEmail }
   });
@@ -293,7 +275,6 @@ async function processAppointmentRow(row: any) {
     throw new Error(`Cliente não encontrado: ${ClienteEmail}`);
   }
 
-  // Buscar profissional
   const professionalUser = await prisma.user.findFirst({
     where: { email: ProfissionalEmail, role: 'PROFESSIONAL' }
   });
@@ -310,7 +291,6 @@ async function processAppointmentRow(row: any) {
     throw new Error(`Profissional não encontrado: ${ProfissionalEmail}`);
   }
 
-  // Buscar serviço
   const service = await prisma.service.findUnique({
     where: { id: ServicoID }
   });
@@ -319,14 +299,12 @@ async function processAppointmentRow(row: any) {
     throw new Error(`Serviço não encontrado: ${ServicoID}`);
   }
 
-  // Calcular endTime baseado na duração do serviço
   const [hours, minutes] = Hora.split(':').map(Number);
   const startDate = new Date();
   startDate.setHours(hours, minutes, 0, 0);
   const endDate = new Date(startDate.getTime() + service.duration * 60000);
   const endTime = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
 
-  // Criar agendamento
   await prisma.appointment.create({
     data: {
       date: new Date(Data),

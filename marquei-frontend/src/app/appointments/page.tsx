@@ -57,7 +57,7 @@ export default function AppointmentsPage() {
         setProfessionals(professionalsRes.data || []);
         setServices(servicesRes.data || []);
       } catch (error) {
-        console.error('Error loading filter data:', error);
+        console.error('Erro ao carregar dados do filtro:', error);
       }
     };
 
@@ -112,7 +112,6 @@ export default function AppointmentsPage() {
     try {
       await appointmentsApi.update(appointmentId, { status });
       
-      // Atualizar lista local
       setAppointments((prev: Appointment[]) => 
         prev.map((apt: Appointment) => 
           apt.id === appointmentId ? { ...apt, status } : apt

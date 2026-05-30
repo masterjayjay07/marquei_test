@@ -6,7 +6,6 @@ import { authenticateToken, AuthRequest, requireRole } from '../middleware/auth'
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// GET /api/services - Listar todos os serviços
 router.get('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const services = await prisma.service.findMany({
@@ -18,7 +17,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
       data: services
     });
   } catch (error) {
-    console.error('Get services error:', error);
+    console.error('Erro ao buscar servicos:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -26,7 +25,6 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
-// GET /api/services/:id - Buscar serviço por ID
 router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
@@ -46,7 +44,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
       data: service
     });
   } catch (error) {
-    console.error('Get service error:', error);
+    console.error('Erro ao buscar servico:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -54,7 +52,6 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
-// POST /api/services - Criar novo serviço
 router.post('/', authenticateToken, requireRole(['manager']), async (req: AuthRequest, res) => {
   try {
     const { name, duration, price, description } = req.body;
@@ -81,7 +78,7 @@ router.post('/', authenticateToken, requireRole(['manager']), async (req: AuthRe
       message: 'Serviço criado com sucesso'
     });
   } catch (error) {
-    console.error('Create service error:', error);
+    console.error('Erro ao criar servico:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -89,7 +86,6 @@ router.post('/', authenticateToken, requireRole(['manager']), async (req: AuthRe
   }
 });
 
-// PUT /api/services/:id - Atualizar serviço
 router.put('/:id', authenticateToken, requireRole(['manager']), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
@@ -111,7 +107,7 @@ router.put('/:id', authenticateToken, requireRole(['manager']), async (req: Auth
       message: 'Serviço atualizado com sucesso'
     });
   } catch (error) {
-    console.error('Update service error:', error);
+    console.error('Erro ao atualizar servico:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -119,7 +115,6 @@ router.put('/:id', authenticateToken, requireRole(['manager']), async (req: Auth
   }
 });
 
-// DELETE /api/services/:id - Excluir serviço
 router.delete('/:id', authenticateToken, requireRole(['manager']), async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
@@ -133,7 +128,7 @@ router.delete('/:id', authenticateToken, requireRole(['manager']), async (req: A
       message: 'Serviço excluído com sucesso'
     });
   } catch (error) {
-    console.error('Delete service error:', error);
+    console.error('Erro ao deletar servico:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'

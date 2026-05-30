@@ -4,7 +4,6 @@ import { prisma } from '../lib/prisma';
 
 const router = express.Router();
 
-// GET /api/notifications - Listar notificações do usuário
 router.get('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.id;
@@ -12,7 +11,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     const notifications = await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      take: 50 // Limitar a 50 notificações mais recentes
+      take: 50
     });
 
     const unreadCount = await prisma.notification.count({
@@ -30,7 +29,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
       }
     });
   } catch (error) {
-    console.error('Get notifications error:', error);
+    console.error('Erro ao buscar notificacoes:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -38,7 +37,6 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
-// GET /api/notifications/unread-count - Contar notificações não lidas
 router.get('/unread-count', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.id;
@@ -55,7 +53,7 @@ router.get('/unread-count', authenticateToken, async (req: AuthRequest, res) => 
       data: { unreadCount }
     });
   } catch (error) {
-    console.error('Get unread count error:', error);
+    console.error('Erro ao contar nao lidas:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -63,7 +61,6 @@ router.get('/unread-count', authenticateToken, async (req: AuthRequest, res) => 
   }
 });
 
-// PUT /api/notifications/:id/read - Marcar notificação como lida
 router.put('/:id/read', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const id = req.params.id as string;
@@ -93,7 +90,7 @@ router.put('/:id/read', authenticateToken, async (req: AuthRequest, res) => {
       data: updatedNotification
     });
   } catch (error) {
-    console.error('Mark notification as read error:', error);
+    console.error('Erro ao marcar como lida:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -101,7 +98,6 @@ router.put('/:id/read', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
-// PUT /api/notifications/mark-all-read - Marcar todas como lidas
 router.put('/mark-all-read', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.id;
@@ -119,7 +115,7 @@ router.put('/mark-all-read', authenticateToken, async (req: AuthRequest, res) =>
       message: 'Todas as notificações foram marcadas como lidas'
     });
   } catch (error) {
-    console.error('Mark all notifications as read error:', error);
+    console.error('Erro ao marcar todas como lidas:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'

@@ -38,7 +38,7 @@ export default function DashboardPage() {
           setMetrics(response.data);
         }
       } catch (error) {
-        console.error('Error loading dashboard metrics:', error);
+        console.error('Erro ao carregar metricas do dashboard:', error);
       } finally {
         if (isMounted) {
           setLoading(false);

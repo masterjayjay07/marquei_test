@@ -46,7 +46,7 @@ export default function MyAppointmentsPage() {
         setProfessionals(professionalsRes.data || []);
         setServices(servicesRes.data || []);
       } catch (error) {
-        console.error('Error loading filter data:', error);
+        console.error('Erro ao carregar dados do filtro:', error);
       }
     };
 
@@ -80,7 +80,7 @@ export default function MyAppointmentsPage() {
           setAppointments(data.data || []);
         }
       } catch (error) {
-        console.error('Error loading appointments:', error);
+        console.error('Erro ao carregar agendamentos:', error);
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -96,17 +96,15 @@ export default function MyAppointmentsPage() {
   }, [filters]);
 
   const canCancelAppointment = (appointment: Appointment) => {
-    // A data vem como UTC (YYYY-MM-DD), precisamos criar a data/hora correta
     const [year, month, day] = appointment.date.split('T')[0].split('-').map(Number);
     const [hours, minutes] = appointment.startTime.split(':').map(Number);
     
-    // Criar data/hora local do agendamento
     const appointmentDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
     
     const now = new Date();
     const hoursDifference = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
     
-    console.log('Appointment:', appointmentDateTime, 'Now:', now, 'Diff hours:', hoursDifference);
+    console.log('Agendamento:', appointmentDateTime, 'Agora:', now, 'Diferenca horas:', hoursDifference);
     
     return hoursDifference >= 4;
   };
@@ -131,7 +129,7 @@ export default function MyAppointmentsPage() {
         apt.id === appointmentId ? { ...apt, status: 'CANCELLED' } : apt
       ));
     } catch (error: any) {
-      console.error('Error cancelling appointment:', error);
+      console.error('Erro ao cancelar agendamento:', error);
       alert(error.response?.data?.error || 'Erro ao cancelar agendamento');
     }
   };

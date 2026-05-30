@@ -5,7 +5,6 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-// Define enums since they're not exported from @prisma/client
 enum UserRole {
   MANAGER = 'MANAGER',
   PROFESSIONAL = 'PROFESSIONAL',
@@ -34,9 +33,8 @@ enum ImportJobStatus {
 }
 
 async function main() {
-  console.log('🌱 Starting database seed...');
+  console.log('Iniciando seed do banco de dados...');
 
-  // Clean existing data
   await prisma.importJob.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.appointment.deleteMany();
@@ -46,12 +44,10 @@ async function main() {
   await prisma.service.deleteMany();
   await prisma.user.deleteMany();
 
-  console.log('🧹 Cleaned existing data');
+  console.log('Dados limpos');
 
-  // Hash passwords
   const hashedPassword = await bcrypt.hash('senha123', 10);
 
-  // Create users
   const managerUser = await prisma.user.create({
     data: {
       name: 'Gestor Teste',
@@ -82,9 +78,8 @@ async function main() {
     },
   });
 
-  console.log('👥 Created users');
+  console.log('Usuarios criados');
 
-  // Create services
   const services = await Promise.all([
     prisma.service.create({
       data: {
@@ -128,9 +123,8 @@ async function main() {
     }),
   ]);
 
-  console.log('💇 Created services');
+  console.log('Servicos criados');
 
-  // Create professional
   const professional = await prisma.professional.create({
     data: {
       userId: professionalUser.id,
@@ -146,31 +140,29 @@ async function main() {
     },
   });
 
-  // Associate services with professional
   await Promise.all([
     prisma.professionalService.create({
       data: {
         professionalId: professional.id,
-        serviceId: services[0].id, // Corte Masculino
+        serviceId: services[0].id,
       },
     }),
     prisma.professionalService.create({
       data: {
         professionalId: professional.id,
-        serviceId: services[1].id, // Corte Feminino
+        serviceId: services[1].id,
       },
     }),
     prisma.professionalService.create({
       data: {
         professionalId: professional.id,
-        serviceId: services[2].id, // Coloração
+        serviceId: services[2].id,
       },
     }),
   ]);
 
-  console.log('💼 Created professional and services association');
+  console.log('Profissional e associacoes de servicos criados');
 
-  // Create clients
   const clients = await Promise.all([
     prisma.client.create({
       data: {
@@ -196,9 +188,8 @@ async function main() {
     }),
   ]);
 
-  console.log('👤 Created clients');
+  console.log('Clientes criados');
 
-  // Create appointments
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -245,7 +236,7 @@ async function main() {
         clientId: clients[0].id,
         professionalId: professional.id,
         serviceId: services[0].id,
-        date: new Date(today.getTime() - 24 * 60 * 60 * 1000), // Yesterday
+        date: new Date(today.getTime() - 24 * 60 * 60 * 1000),
         startTime: '15:00',
         endTime: '15:30',
         status: AppointmentStatus.NO_SHOW,
@@ -254,9 +245,8 @@ async function main() {
     }),
   ]);
 
-  console.log('📅 Created appointments');
+  console.log('Agendamentos criados');
 
-  // Create notifications
   await Promise.all([
     prisma.notification.create({
       data: {
@@ -284,9 +274,8 @@ async function main() {
     }),
   ]);
 
-  console.log('🔔 Created notifications');
+  console.log('Notificacoes criadas');
 
-  // Create import job
   await prisma.importJob.create({
     data: {
       fileName: 'clients_import.csv',
@@ -308,10 +297,10 @@ async function main() {
     },
   });
 
-  console.log('📁 Created import job');
+  console.log('Job de importacao criado');
 
-  console.log('✅ Database seeded successfully!');
-  console.log('\n📊 Summary:');
+  console.log('Seed do banco concluido!');
+  console.log('\nResumo:');
   console.log(`- Users: ${await prisma.user.count()}`);
   console.log(`- Services: ${await prisma.service.count()}`);
   console.log(`- Professionals: ${await prisma.professional.count()}`);
@@ -323,7 +312,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error('❌ Error seeding database:', e);
+    console.error('Erro no seed do banco:', e);
     process.exit(1);
   })
   .finally(async () => {

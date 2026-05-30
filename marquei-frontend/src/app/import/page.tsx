@@ -43,7 +43,6 @@ export default function ImportPage() {
       if (data.success) {
         setImportJobs(data.data);
         
-        // Iniciar polling para jobs que ainda estão processando
         data.data.forEach((job: ImportJob) => {
           if (job.status === 'queued' || job.status === 'processing') {
             pollJobStatus(job.id);
@@ -51,7 +50,7 @@ export default function ImportPage() {
         });
       }
     } catch (error) {
-      console.error('Error loading jobs:', error);
+      console.error('Erro ao carregar jobs:', error);
     } finally {
       setLoading(false);
     }
@@ -79,16 +78,14 @@ export default function ImportPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Adicionar job à lista
         setImportJobs(prev => [data.data, ...prev]);
         
-        // Iniciar polling para atualizar status
         pollJobStatus(data.data.id);
       } else {
         alert(data.error || 'Erro ao iniciar importação');
       }
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('Erro ao fazer upload:', error);
       alert('Erro ao fazer upload do arquivo');
     } finally {
       setUploading(false);
@@ -112,15 +109,14 @@ export default function ImportPage() {
             prev.map(job => job.id === jobId ? data.data : job)
           );
 
-          // Parar polling se job terminou
           if (data.data.status === 'completed' || data.data.status === 'completed_with_errors') {
             clearInterval(interval);
           }
         }
       } catch (error) {
-        console.error('Error polling job status:', error);
+        console.error('Erro ao verificar status do job:', error);
       }
-    }, 2000); // Poll a cada 2 segundos
+    }, 2000);
   };
 
   const getStatusColor = (status: string) => {
@@ -171,7 +167,6 @@ export default function ImportPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Importação em Massa</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Importar Clientes */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Importar Clientes</h2>
             <p className="text-gray-600 mb-4">
@@ -197,7 +192,6 @@ export default function ImportPage() {
             </label>
           </div>
 
-          {/* Importar Agendamentos */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Importar Agendamentos</h2>
             <p className="text-gray-600 mb-4">
@@ -224,7 +218,6 @@ export default function ImportPage() {
           </div>
         </div>
 
-        {/* Lista de Jobs */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Histórico de Importações</h2>
@@ -252,7 +245,6 @@ export default function ImportPage() {
                     </span>
                   </div>
 
-                  {/* Barra de Progresso */}
                   {(job.status === 'processing' || job.status === 'completed' || job.status === 'completed_with_errors') && (
                     <div className="mt-3">
                       <div className="flex justify-between text-xs text-gray-600 mb-1">
@@ -268,7 +260,6 @@ export default function ImportPage() {
                     </div>
                   )}
 
-                  {/* Resultados */}
                   {(job.status === 'completed' || job.status === 'completed_with_errors') && (
                     <div className="mt-3 flex space-x-6 text-sm">
                       <div className="text-green-600">
@@ -282,7 +273,6 @@ export default function ImportPage() {
                     </div>
                   )}
 
-                  {/* Erros */}
                   {job.errors && job.errors.length > 0 && (
                     <div className="mt-3">
                       <details className="text-sm">
