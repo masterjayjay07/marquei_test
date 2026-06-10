@@ -1,8 +1,50 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateToken, AuthRequest, requireRole } from '../middleware/auth';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
+const execAsync = promisify(exec);
 const router = express.Router();
+
+router.post('/init-database', async (req, res) => {
+  try {
+    const { secret } = req.body;
+    
+    if (secret !== 'init-marquei-2026') {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+
+    console.log('Iniciando setup do banco de dados...');
+    
+    const { stdout: pushOutput, stderr: pushError } = await execAsync('npx prisma db push --accept-data-loss');
+    console.log('DB Push:', pushOutput);
+    if (pushError) console.error('DB Push Error:', pushError);
+
+    const { stdout: seedOutput, stderr: seedError } = await execAsync('npx ts-node prisma/seed.ts');
+    console.log('Seed:', seedOutput);
+    if (seedError) console.error('Seed Error:', seedError);
+
+    res.json({
+      success: true,
+      message: 'Banco de dados inicializado com sucesso',
+      logs: {
+        push: pushOutput,
+        seed: seedOutput
+      }
+    });
+  } catch (error: any) {
+    console.error('Erro ao inicializar banco:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: error.stderr || error.stdout
+    });
+  }
+});
 
 router.post('/professional-services', authenticateToken, requireRole(['MANAGER']), async (req: AuthRequest, res) => {
   try {
