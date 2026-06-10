@@ -23,7 +23,6 @@ async function initializeDatabase() {
         filename: dbPath,
         driver: sqlite3_1.default.Database
     });
-    // Enable foreign keys
     await db.exec('PRAGMA foreign_keys = ON');
     return db;
 }
@@ -33,18 +32,14 @@ async function getDatabase() {
     }
     return db;
 }
-// Hash password utility
 async function hashPassword(password) {
     return bcryptjs_1.default.hash(password, 10);
 }
-// Compare password utility
 async function comparePassword(password, hash) {
     return bcryptjs_1.default.compare(password, hash);
 }
-// Initialize database with schema and seed data
 async function setupDatabase() {
     const database = await initializeDatabase();
-    // Create tables
     await database.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -144,20 +139,16 @@ async function setupDatabase() {
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(userId);
     CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
   `);
-    // Seed data
     await seedDatabase(database);
 }
 async function seedDatabase(database) {
-    console.log('🌱 Starting database seed...');
-    // Check if data already exists
+    console.log('Iniciando seed do banco...');
     const userCount = await database.get('SELECT COUNT(*) as count FROM users');
     if (userCount.count > 0) {
-        console.log('📊 Database already seeded');
+        console.log('Banco ja populado');
         return;
     }
-    // Hash password
     const hashedPassword = await hashPassword('senha123');
-    // Create users
     const managerId = generateId();
     const professionalId = generateId();
     const clientId = generateId();
@@ -173,7 +164,6 @@ async function seedDatabase(database) {
     INSERT INTO users (id, name, email, password, role, phone)
     VALUES (?, ?, ?, ?, ?, ?)
   `, [clientId, 'Cliente Teste', 'cliente@marquei.com', hashedPassword, 'CLIENT', '(11) 77777-7777']);
-    // Create services
     const services = [
         { id: generateId(), name: 'Corte Masculino', duration: 30, price: 50.0, description: 'Corte de cabelo masculino tradicional' },
         { id: generateId(), name: 'Corte Feminino', duration: 45, price: 80.0, description: 'Corte de cabelo feminino com styling' },
@@ -187,7 +177,6 @@ async function seedDatabase(database) {
       VALUES (?, ?, ?, ?, ?)
     `, [service.id, service.name, service.duration, service.price, service.description]);
     }
-    // Create professional
     const profId = generateId();
     const workSchedule = JSON.stringify({
         monday: [{ start: '09:00', end: '18:00' }],
@@ -202,7 +191,6 @@ async function seedDatabase(database) {
     INSERT INTO professionals (id, userId, workSchedule)
     VALUES (?, ?, ?)
   `, [profId, professionalId, workSchedule]);
-    // Associate services with professional
     await database.run(`
     INSERT INTO professional_services (id, professionalId, serviceId)
     VALUES (?, ?, ?)
@@ -215,7 +203,6 @@ async function seedDatabase(database) {
     INSERT INTO professional_services (id, professionalId, serviceId)
     VALUES (?, ?, ?)
   `, [generateId(), profId, services[2].id]);
-    // Create clients
     const clients = [
         { id: generateId(), name: 'João Silva', email: 'joao@email.com', phone: '(11) 11111-1111', userId: clientId },
         { id: generateId(), name: 'Maria Santos', email: 'maria@email.com', phone: '(11) 22222-2222', userId: null },
@@ -227,7 +214,6 @@ async function seedDatabase(database) {
       VALUES (?, ?, ?, ?, ?)
     `, [client.id, client.name, client.email, client.phone, client.userId]);
     }
-    // Create appointments
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -249,7 +235,6 @@ async function seedDatabase(database) {
     INSERT INTO appointments (id, clientId, professionalId, serviceId, date, startTime, endTime, status, notes)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [generateId(), clients[0].id, profId, services[0].id, yesterday.toISOString(), '15:00', '15:30', 'NO_SHOW', 'Cliente não compareceu']);
-    // Create notifications
     await database.run(`
     INSERT INTO notifications (id, userId, title, message, type)
     VALUES (?, ?, ?, ?, ?)
@@ -262,7 +247,6 @@ async function seedDatabase(database) {
     INSERT INTO notifications (id, userId, title, message, type)
     VALUES (?, ?, ?, ?, ?)
   `, [generateId(), managerId, 'Relatório diário', '4 agendamentos criados hoje', 'SYSTEM_NOTIFICATION']);
-    // Create import job
     await database.run(`
     INSERT INTO import_jobs (id, fileName, status, totalRows, processedRows, errors)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -270,8 +254,8 @@ async function seedDatabase(database) {
             { row: 5, field: 'email', message: 'Email inválido' },
             { row: 9, field: 'phone', message: 'Telefone já existe' }
         ])]);
-    console.log('✅ Database seeded successfully!');
-    console.log('\n📊 Summary:');
+    console.log('Seed do banco concluido!');
+    console.log('\nResumo:');
     console.log(`- Users: ${(await database.get('SELECT COUNT(*) as count FROM users')).count}`);
     console.log(`- Services: ${(await database.get('SELECT COUNT(*) as count FROM services')).count}`);
     console.log(`- Professionals: ${(await database.get('SELECT COUNT(*) as count FROM professionals')).count}`);
@@ -283,4 +267,3 @@ async function seedDatabase(database) {
 function generateId() {
     return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
-//# sourceMappingURL=sqlite.js.map

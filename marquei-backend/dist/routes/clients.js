@@ -4,153 +4,178 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const database_1 = require("../database/database");
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const auth_1 = require("../middleware/auth");
+const prisma_1 = require("../lib/prisma");
 const router = express_1.default.Router();
-const db = database_1.Database.getInstance();
-router.get('/', auth_1.authenticateToken, (0, auth_1.requireRole)(['manager']), (req, res) => {
+console.log('Rotas de clientes carregadas');
+router.get('/', auth_1.authenticateToken, (0, auth_1.requireRole)(['MANAGER']), async (req, res) => {
+    console.log('GET /clients - Rota acessada');
     try {
-        const clients = db.users.filter(u => u.role === 'client');
-        const response = {
+        const clients = await prisma_1.prisma.client.findMany({
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json({
             success: true,
             data: clients
-        };
-        res.json(response);
+        });
     }
     catch (error) {
-        console.error('Get clients error:', error);
+        console.error('Erro ao buscar clientes:', error);
         res.status(500).json({
             success: false,
             error: 'Erro interno do servidor'
         });
     }
 });
-router.get('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['manager']), (req, res) => {
+router.get('/me', auth_1.authenticateToken, async (req, res) => {
     try {
-        const { id } = req.params;
-        const client = db.users.find(u => u.id === id && u.role === 'client');
+        if (req.user.role !== 'CLIENT') {
+            return res.status(403).json({
+                success: false,
+                error: 'Acesso negado'
+            });
+        }
+        const client = await prisma_1.prisma.client.findUnique({
+            where: { userId: req.user.id }
+        });
+        if (!client) {
+            return res.status(404).json({
+                success: false,
+                error: 'Cliente não encontrado. Por favor, cadastre-se primeiro.'
+            });
+        }
+        res.json({
+            success: true,
+            data: client
+        });
+    }
+    catch (error) {
+        console.error('Erro ao buscar cliente:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Erro interno do servidor'
+        });
+    }
+});
+router.get('/:id', auth_1.authenticateToken, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const client = await prisma_1.prisma.client.findUnique({
+            where: { id }
+        });
         if (!client) {
             return res.status(404).json({
                 success: false,
                 error: 'Cliente não encontrado'
             });
         }
-        const response = {
+        res.json({
             success: true,
             data: client
-        };
-        res.json(response);
+        });
     }
     catch (error) {
-        console.error('Get client error:', error);
+        console.error('Erro ao buscar cliente:', error);
         res.status(500).json({
             success: false,
             error: 'Erro interno do servidor'
         });
     }
 });
-router.post('/', auth_1.authenticateToken, (0, auth_1.requireRole)(['manager']), (req, res) => {
+router.post('/', auth_1.authenticateToken, (0, auth_1.requireRole)(['MANAGER']), async (req, res) => {
     try {
-        const { name, email, phone } = req.body;
+        const { name, email, phone, password } = req.body;
         if (!name || !email) {
             return res.status(400).json({
                 success: false,
                 error: 'Nome e email são obrigatórios'
             });
         }
-        const existingUser = db.users.find(u => u.email === email);
-        if (existingUser) {
-            return res.status(400).json({
-                success: false,
-                error: 'Email já cadastrado'
+        let userId = null;
+        if (password) {
+            const existingUser = await prisma_1.prisma.user.findUnique({
+                where: { email }
             });
-        }
-        const newClient = {
-            id: Date.now().toString(),
-            name,
-            email,
-            phone,
-            role: 'client',
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-        db.users.push(newClient);
-        const response = {
-            success: true,
-            data: newClient,
-            message: 'Cliente criado com sucesso'
-        };
-        res.status(201).json(response);
-    }
-    catch (error) {
-        console.error('Create client error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erro interno do servidor'
-        });
-    }
-});
-router.put('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['manager']), (req, res) => {
-    try {
-        const { id } = req.params;
-        const { name, email, phone } = req.body;
-        const clientIndex = db.users.findIndex(u => u.id === id && u.role === 'client');
-        if (clientIndex === -1) {
-            return res.status(404).json({
-                success: false,
-                error: 'Cliente não encontrado'
-            });
-        }
-        if (email && email !== db.users[clientIndex].email) {
-            const existingUser = db.users.find(u => u.email === email && u.id !== id);
             if (existingUser) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Email já cadastrado'
+                    error: 'Email já cadastrado como usuário'
                 });
             }
+            const hashedPassword = await bcryptjs_1.default.hash(password, 10);
+            const user = await prisma_1.prisma.user.create({
+                data: {
+                    name,
+                    email,
+                    password: hashedPassword,
+                    role: 'CLIENT',
+                    phone: phone || null
+                }
+            });
+            userId = user.id;
         }
-        const updatedClient = {
-            ...db.users[clientIndex],
-            name: name || db.users[clientIndex].name,
-            email: email || db.users[clientIndex].email,
-            phone: phone !== undefined ? phone : db.users[clientIndex].phone,
-            updatedAt: new Date()
-        };
-        db.users[clientIndex] = updatedClient;
-        const response = {
+        const newClient = await prisma_1.prisma.client.create({
+            data: {
+                name,
+                email,
+                phone: phone || null,
+                userId
+            }
+        });
+        res.status(201).json({
             success: true,
-            data: updatedClient,
-            message: 'Cliente atualizado com sucesso'
-        };
-        res.json(response);
+            data: newClient,
+            message: 'Cliente criado com sucesso'
+        });
     }
     catch (error) {
-        console.error('Update client error:', error);
+        console.error('Erro ao criar cliente:', error);
         res.status(500).json({
             success: false,
             error: 'Erro interno do servidor'
         });
     }
 });
-router.delete('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['manager']), (req, res) => {
+router.put('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['MANAGER']), async (req, res) => {
     try {
-        const { id } = req.params;
-        const clientIndex = db.users.findIndex(u => u.id === id && u.role === 'client');
-        if (clientIndex === -1) {
-            return res.status(404).json({
-                success: false,
-                error: 'Cliente não encontrado'
-            });
-        }
-        db.users.splice(clientIndex, 1);
+        const id = req.params.id;
+        const { name, email, phone } = req.body;
+        const updatedClient = await prisma_1.prisma.client.update({
+            where: { id },
+            data: {
+                ...(name && { name }),
+                ...(email && { email }),
+                ...(phone !== undefined && { phone: phone || null })
+            }
+        });
+        res.json({
+            success: true,
+            data: updatedClient,
+            message: 'Cliente atualizado com sucesso'
+        });
+    }
+    catch (error) {
+        console.error('Erro ao atualizar cliente:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Erro interno do servidor'
+        });
+    }
+});
+router.delete('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['MANAGER']), async (req, res) => {
+    try {
+        const id = req.params.id;
+        await prisma_1.prisma.client.delete({
+            where: { id }
+        });
         res.json({
             success: true,
             message: 'Cliente excluído com sucesso'
         });
     }
     catch (error) {
-        console.error('Delete client error:', error);
+        console.error('Erro ao deletar cliente:', error);
         res.status(500).json({
             success: false,
             error: 'Erro interno do servidor'
@@ -158,4 +183,3 @@ router.delete('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['manage
     }
 });
 exports.default = router;
-//# sourceMappingURL=clients.js.map

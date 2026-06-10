@@ -4,22 +4,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const client_1 = require("@prisma/client");
 const auth_1 = require("../middleware/auth");
-const prisma_1 = require("../lib/prisma");
 const router = express_1.default.Router();
+const prisma = new client_1.PrismaClient();
 router.get('/', auth_1.authenticateToken, async (req, res) => {
     try {
-        const services = await prisma_1.prisma.service.findMany({
+        const services = await prisma.service.findMany({
             orderBy: { createdAt: 'desc' }
         });
-        const response = {
+        res.json({
             success: true,
             data: services
-        };
-        res.json(response);
+        });
     }
     catch (error) {
-        console.error('Get services error:', error);
+        console.error('Erro ao buscar servicos:', error);
         res.status(500).json({
             success: false,
             error: 'Erro interno do servidor'
@@ -29,7 +29,7 @@ router.get('/', auth_1.authenticateToken, async (req, res) => {
 router.get('/:id', auth_1.authenticateToken, async (req, res) => {
     try {
         const id = req.params.id;
-        const service = await prisma_1.prisma.service.findUnique({
+        const service = await prisma.service.findUnique({
             where: { id }
         });
         if (!service) {
@@ -38,21 +38,20 @@ router.get('/:id', auth_1.authenticateToken, async (req, res) => {
                 error: 'Serviço não encontrado'
             });
         }
-        const response = {
+        res.json({
             success: true,
             data: service
-        };
-        res.json(response);
+        });
     }
     catch (error) {
-        console.error('Get service error:', error);
+        console.error('Erro ao buscar servico:', error);
         res.status(500).json({
             success: false,
             error: 'Erro interno do servidor'
         });
     }
 });
-router.post('/', auth_1.authenticateToken, (0, auth_1.requireRole)(['MANAGER']), async (req, res) => {
+router.post('/', auth_1.authenticateToken, (0, auth_1.requireRole)(['manager']), async (req, res) => {
     try {
         const { name, duration, price, description } = req.body;
         if (!name || !duration || !price) {
@@ -61,61 +60,59 @@ router.post('/', auth_1.authenticateToken, (0, auth_1.requireRole)(['MANAGER']),
                 error: 'Nome, duração e preço são obrigatórios'
             });
         }
-        const newService = await prisma_1.prisma.service.create({
+        const newService = await prisma.service.create({
             data: {
                 name,
                 duration: parseInt(duration),
                 price: parseFloat(price),
-                description
+                description: description || null
             }
         });
-        const response = {
+        res.status(201).json({
             success: true,
             data: newService,
             message: 'Serviço criado com sucesso'
-        };
-        res.status(201).json(response);
+        });
     }
     catch (error) {
-        console.error('Create service error:', error);
+        console.error('Erro ao criar servico:', error);
         res.status(500).json({
             success: false,
             error: 'Erro interno do servidor'
         });
     }
 });
-router.put('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['MANAGER']), async (req, res) => {
+router.put('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['manager']), async (req, res) => {
     try {
         const id = req.params.id;
         const { name, duration, price, description } = req.body;
-        const updatedService = await prisma_1.prisma.service.update({
+        const updatedService = await prisma.service.update({
             where: { id },
             data: {
                 ...(name && { name }),
                 ...(duration && { duration: parseInt(duration) }),
                 ...(price && { price: parseFloat(price) }),
-                ...(description !== undefined && { description })
+                ...(description !== undefined && { description: description || null })
             }
         });
-        const response = {
+        res.json({
             success: true,
             data: updatedService,
             message: 'Serviço atualizado com sucesso'
-        };
-        res.json(response);
+        });
     }
     catch (error) {
-        console.error('Update service error:', error);
+        console.error('Erro ao atualizar servico:', error);
         res.status(500).json({
             success: false,
             error: 'Erro interno do servidor'
         });
     }
 });
-router.delete('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['MANAGER']), async (req, res) => {
+router.delete('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['manager']), async (req, res) => {
     try {
         const id = req.params.id;
-        await prisma_1.prisma.service.delete({
+        await prisma.service.delete({
             where: { id }
         });
         res.json({
@@ -124,7 +121,7 @@ router.delete('/:id', auth_1.authenticateToken, (0, auth_1.requireRole)(['MANAGE
         });
     }
     catch (error) {
-        console.error('Delete service error:', error);
+        console.error('Erro ao deletar servico:', error);
         res.status(500).json({
             success: false,
             error: 'Erro interno do servidor'
