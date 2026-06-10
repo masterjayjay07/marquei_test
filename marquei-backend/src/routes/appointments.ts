@@ -39,7 +39,8 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     if (clientId) {
       whereClause.clientId = clientId as string;
     }
-    if (clientName) {
+    
+    if (clientName && !clientId) {
       whereClause.client = {
         name: {
           contains: clientName as string,
@@ -47,6 +48,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
         }
       };
     }
+    
     if (professionalId) {
       whereClause.professionalId = professionalId as string;
     }

@@ -1,5 +1,8 @@
 /// <reference types="node" />
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -279,6 +282,7 @@ async function main() {
   await prisma.importJob.create({
     data: {
       fileName: 'clients_import.csv',
+      type: 'CLIENTS',
       status: ImportJobStatus.COMPLETED,
       totalRows: 10,
       processedRows: 8,

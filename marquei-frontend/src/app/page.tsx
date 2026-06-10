@@ -12,13 +12,13 @@ export default function Home() {
     if (!isLoading) {
       if (user) {
         switch (user.role) {
-          case 'manager':
+          case 'MANAGER':
             router.push('/dashboard');
             break;
-          case 'professional':
+          case 'PROFESSIONAL':
             router.push('/schedule');
             break;
-          case 'client':
+          case 'CLIENT':
             router.push('/my-appointments');
             break;
           default:
