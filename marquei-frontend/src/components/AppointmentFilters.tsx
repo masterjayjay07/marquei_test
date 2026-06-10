@@ -110,7 +110,7 @@ export const AppointmentFilters: React.FC<AppointmentFiltersProps> = ({
                 className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               />
               <button
-                onClick={applyFilters}
+                onClick={() => applyFilters()}
                 className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-blue-600"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
